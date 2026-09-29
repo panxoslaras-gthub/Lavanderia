@@ -69,53 +69,80 @@ Lavanderia/
 
 ## Bitácora de Avances
 
-### 18 de Agosto de 2026
-- **Planificación Inicial:** Definición del alcance del sistema para el negocio de Lavandería.
-- **Configuración del Entorno:** Inicialización del repositorio Git y creación del archivo `.gitignore` para excluir cachés compiladas de Python (`__pycache__/`, `*.pyc`).
-
-### 25 de Agosto de 2026
-- **Módulo de Conexión (`conectar.py`):** Creación del módulo centralizado de conexión a SQLite configurando la base de datos `lavanderia.db` y habilitando la integridad referencial con `PRAGMA foreign_keys = ON`.
-- **Módulo de Moneda e Insumos (`model/cotizacion_dolar.py` y `model/producto_quimico.py`):**
-  - Implementación de `CotizacionDolar` con atributos privados `__fecha` y `__valor_dolar`, validación de montos positivos y método `obtenerValorDolar()`.
-  - Implementación de `ProductoQuimico` con validación de nombre, precio en dólares y método `calcularPrecioPesos()` para convertir el costo de insumos a moneda nacional.
-
-### 1 de Septiembre de 2026
-- **Jerarquía de Personal (`model/empleado.py`, `model/cajero.py`, `model/operario.py`):**
-  - Creación de la clase abstracta `Empleado` con encapsulamiento sobre `__id_empleado` y validación de enteros positivos.
-  - Implementación de `Cajero` heredando de `Empleado`, incorporando métodos de atención comercial: `recibirPrendas()`, `registrarOrden()`, `cobrarOrden()` y `entregarPrendas()`.
-  - Implementación de `Operario` heredando de `Empleado`, con gestión de máquinas asignadas y métodos `procesarPrenda()` y `operarMaquina()`.
-- **Modelado de Equipamiento (`model/maquina.py`):** Creación de la clase `Maquina` con identificador único y método `iniciarLavado()`.
-
-### 8 de Septiembre de 2026
-- **Módulo de Clientes (`model/cliente.py`):** Creación de la clase `Cliente` con atributo privado `__rut`, setter con expresión regular y algoritmo completo de validación de dígito verificador para RUT chileno (`validarRut()`).
-- **Abstracción de Prendas (`model/prenda.py`):** Creación de la clase abstracta base `Prenda` mediante `abc.ABC`, definiendo atributos protegidos/privados (`__estado_inicial`, `__lavado_seco`, `__producto_quimico`), validación de estado físico de la prenda y los métodos abstractos `calcularCosto()` y `calcularTiempoLavado()`.
-
 ### 15 de Septiembre de 2026
-- **Polimorfismo de Prendas (`model/ropa_normal.py`, `model/alfombra.py`, `model/edredon_cobertor.py`):**
-  - Creación de `RopaNormal`, `Alfombra` y `EdredonCobertor` heredando de `Prenda`.
-  - Sobrescritura de `calcularCosto()` aplicando tarifas especializadas según material y tipo de tratamiento (agua o lavado en seco).
-  - Sobrescritura de `calcularTiempoLavado()` retornando tiempos estimados diferenciados de ciclo.
-- **Líneas de Detalle y Pedidos (`model/detalle_orden.py` y `model/orden.py`):**
-  - Creación de `DetalleOrden` para cálculo automático de subtotales multiplicando costo unitario polimórfico por la cantidad ingresada.
-  - Creación de `Orden` para consolidar cliente, cajero y lista de detalles, con validación de identificación, cálculo del total general, verificación de pago y control de entrega segura.
+- **Inicialización del Proyecto:** Creación de la estructura del repositorio de trabajo y archivo `.gitignore` para exclusión de archivos compilados de Python.
+- **Creación de Clase `CotizacionDolar` (`model/cotizacion_dolar.py`):**
+  - Implementación del constructor con atributos privados `__fecha` y `__valor_dolar`.
+  - Validación de valor positivo mediante decorador `@valor_dolar.setter`.
+  - Definición del método `obtenerValorDolar()` para consulta de la tasa de cambio.
+- **Creación de Clase `ProductoQuimico` (`model/producto_quimico.py`):**
+  - Definición de atributos privados `__nombre` y `__precio_dolar` con validaciones de texto no vacío y monto no negativo.
+  - Implementación del método de negocio `calcularPrecioPesos(valorDolar)` para convertir el costo unitario de insumos a moneda nacional (CLP).
 
-### 22 de Septiembre de 2026
+### 17 de Septiembre de 2026
+- **Creación de Clase `Cliente` (`model/cliente.py`):**
+  - Encapsulamiento del atributo privado `__rut`.
+  - Validación de formato mediante expresión regular en el setter.
+  - Implementación del método `validarRut()` con el algoritmo completo de verificación de dígito verificador chileno.
+- **Creación de Clase `Maquina` (`model/maquina.py`):**
+  - Atributo privado `__id_maquina` validado para enteros positivos.
+  - Implementación del método `iniciarLavado()` que simula el inicio operativo del ciclo del equipo.
+
+### 21 de Septiembre de 2026
+- **Creación de Clase Abstracta `Empleado` (`model/empleado.py`):**
+  - Clase base que hereda de `abc.ABC` con atributo privado `__id_empleado` y propiedades de lectura.
+- **Implementación de Subclase `Cajero` (`model/cajero.py`):**
+  - Hereda de `Empleado` e invoca al constructor superior mediante `super().__init__(id_empleado)`.
+  - Implementación de métodos de atención y recaudación: `recibirPrendas()`, `registrarOrden()`, `cobrarOrden()` y `entregarPrendas()`.
+- **Implementación de Subclase `Operario` (`model/operario.py`):**
+  - Hereda de `Empleado` con atributo privado `__maquinas_asignadas` tipo lista.
+  - Implementación de métodos de gestión de planta: `asignar_maquina()`, `procesarPrenda()` y `operarMaquina()`.
+
+### 23 de Septiembre de 2026
+- **Creación de Clase Abstracta `Prenda` (`model/prenda.py`):**
+  - Definición de atributos privados `__estado_inicial`, `__lavado_seco` y relación de composición con `ProductoQuimico`.
+  - Método `validarEstado()` para comprobar si la prenda es apta para proceso.
+  - Declaración de métodos abstractos polimórficos `@abstractmethod def calcularCosto()` y `@abstractmethod def calcularTiempoLavado()`.
+- **Implementación de Subclases de Prendas:**
+  - **`RopaNormal` (`model/ropa_normal.py`):** Sobrescritura de `calcularCosto()` con tarifa base y recargo por lavado en seco; y `calcularTiempoLavado()` con tiempos estándar.
+  - **`Alfombra` (`model/alfombra.py`):** Sobrescritura de `calcularCosto()` para lavado pesado de fibras y `calcularTiempoLavado()` para ciclo extendido.
+  - **`EdredonCobertor` (`model/edredon_cobertor.py`):** Sobrescritura de `calcularCosto()` adaptado a piezas de gran volumen y duración de ciclo especializada.
+
+### 26 de Septiembre de 2026
+- **Creación de Clase `DetalleOrden` (`model/detalle_orden.py`):**
+  - Atributos privados `__prenda` y `__cantidad` (con validación de entero mayor a 0).
+  - Implementación de `calcularSubtotal()` multiplicando el costo unitario polimórfico de la prenda por la cantidad solicitada.
+- **Creación de Clase `Orden` (`model/orden.py`):**
+  - Consolidación de atributos privados: `__num_orden`, `__num_boleta`, `__cliente`, `__cajero`, `__detalles` y `__pagada`.
+  - Implementación de métodos transaccionales:
+    - `validarIdentificacion()`: Comprobación de existencia de cliente y cajero junto con validación del RUT.
+    - `calcularTotal()`: Sumatoria acumulativa de subtotales de la lista de detalles.
+    - `verificarPago()`: Verificación del estado booleano de pago.
+    - `entregarOrden()`: Control seguro de despacho, impidiendo entregas sin pago previo.
+
+### 29 de Septiembre de 2026
+- **Conexión de Base de Datos (`conectar.py` y `lavanderia.db`):**
+  - Implementación de la función `crear_conexion()` conectando a `lavanderia.db`.
+  - Activación obligatoria de integridad referencial relacional mediante `PRAGMA foreign_keys = ON`.
 - **Diseño de la Capa DAO (`dao/`):**
-  - Creación del paquete `dao` con su respectivo `__init__.py`.
-  - Implementación de la clase base `DAO` (`dao/dao.py`) para encapsular la conexión compartida y el cursor de SQLite.
-  - Creación de DAOs para entidades independientes:
-    - `ClienteDAO` (`dao/cliente_dao.py`): Creación de tabla y operaciones de persistencia para clientes.
-    - `EmpleadoDAO` (`dao/empleado_dao.py`): Creación de tabla base de empleados.
-    - `MaquinaDAO` (`dao/maquina_dao.py`): Creación de tabla para equipos de lavado.
-    - `ProductoQuimicoDAO` (`dao/producto_quimico_dao.py`): Tabla de insumos químicos y costos.
-    - `CotizacionDolarDAO` (`dao/cotizacion_dolar_dao.py`): Tabla de registro histórico de cotizaciones.
+  - Creación del paquete `dao/` e inicialización con `__init__.py`.
+  - Creación de la clase base `DAO` (`dao/dao.py`) con inyección de conexión y cursor de SQLite.
+  - Creación de DAOs para tablas maestras independientes:
+    - `ClienteDAO` (`dao/cliente_dao.py`): Definición y creación de tabla `cliente`.
+    - `EmpleadoDAO` (`dao/empleado_dao.py`): Creación de tabla base `empleado`.
+    - `MaquinaDAO` (`dao/maquina_dao.py`): Creación de tabla de equipos `maquina`.
+    - `ProductoQuimicoDAO` (`dao/producto_quimico_dao.py`): Creación de tabla `producto_quimico`.
+    - `CotizacionDolarDAO` (`dao/cotizacion_dolar_dao.py`): Creación de tabla `cotizacion_dolar`.
 
-### 28 de Septiembre de 2026
-- **Especialización de DAOs Relacionales y con Herencia:**
-  - Implementación de `CajeroDAO` (`dao/cajero_dao.py`) y `OperarioDAO` (`dao/operario_dao.py`) extendiendo de `EmpleadoDAO`.
-  - Implementación de `PrendaDAO` (`dao/prenda_dao.py`) con relación foránea a `producto_quimico`.
+### 2 de Octubre de 2026
+- **Especialización de DAOs Relacionales con Herencia y Claves Foráneas:**
+  - Implementación de `CajeroDAO` (`dao/cajero_dao.py`) y `OperarioDAO` (`dao/operario_dao.py`) heredando de `EmpleadoDAO` con relación foránea a `empleado`.
+  - Implementación de `PrendaDAO` (`dao/prenda_dao.py`) con clave foránea a `producto_quimico`.
   - Implementación de `RopaNormalDAO`, `AlfombraDAO` y `EdredonCobertorDAO` extendiendo de `PrendaDAO`.
-  - Implementación de `OrdenDAO` (`dao/orden_dao.py`) y `DetalleOrdenDAO` (`dao/detalle_orden_dao.py`) con integridad referencial completa hacia clientes, cajeros y prendas.
-- **Integración y Verificación del Sistema (`main.py`):**
-  - Desarrollo del script principal `main.py` integrando la creación ordenada de todas las tablas relacionales en `lavanderia.db`.
-  - Ejecución de pruebas integrales simulando el ciclo completo del negocio: recepción, conversión de divisas, asignación de maquinaria, procesamiento, cálculo de totales, cobro y entrega.
+  - Implementación de `OrdenDAO` (`dao/orden_dao.py`) y `DetalleOrdenDAO` (`dao/detalle_orden_dao.py`) con relaciones foráneas a clientes, cajeros, órdenes y prendas.
+
+### 4 de Octubre de 2026
+- **Integración General y Pruebas del Sistema (`main.py`):**
+  - Desarrollo del script principal `main.py` que instancia todos los DAOs y ejecuta la creación automática de tablas en la base de datos `lavanderia.db`.
+  - Pruebas integrales de dominio: instanciación de cotizaciones cambiarias, cálculo de precios de químicos en CLP, asignación de maquinaria a operarios, registro de órdenes con detalle polimórfico, validación de pago y entrega exitosa.
+  - Verificación de consistencia y ejecución sin errores en consola.

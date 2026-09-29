@@ -31,7 +31,7 @@ from model.orden import Orden
 
 def main():
     print("================================================================")
-    print("     SISTEMA DE GESTIÓN DE LAVANDERÍA Y TINTORERÍA")
+    print("           SISTEMA DE GESTIÓN DE LAVANDERÍA")
     print("================================================================")
 
     # ------------------------------------------------------------------

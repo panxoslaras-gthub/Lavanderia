@@ -63,6 +63,10 @@ Lavanderia/
     ├── edredon_cobertor.py
     ├── detalle_orden.py
     └── orden.py
+│
+└── servicios/                # Capa de Servicios Externos e Integración API
+    ├── __init__.py
+    └── miinidicador.py       # Cliente API REST para mindicador.cl (cotización del dólar en tiempo real)
 ```
 
 ---
@@ -142,7 +146,11 @@ Lavanderia/
   - Implementación de `OrdenDAO` (`dao/orden_dao.py`) y `DetalleOrdenDAO` (`dao/detalle_orden_dao.py`) con relaciones foráneas a clientes, cajeros, órdenes y prendas.
 
 ### 4 de Octubre de 2026
+- **Clonación e Integración de Capa de Servicios (`servicios/`):**
+  - Clonación de la carpeta `servicios` desde el repositorio de referencia.
+  - Incorporación del módulo `servicios/miinidicador.py` (`MiIndicador`) para consumo de la API REST de `mindicador.cl`.
 - **Integración General y Pruebas del Sistema (`main.py`):**
   - Desarrollo del script principal `main.py` que instancia todos los DAOs y ejecuta la creación automática de tablas en la base de datos `lavanderia.db`.
-  - Pruebas integrales de dominio: instanciación de cotizaciones cambiarias, cálculo de precios de químicos en CLP, asignación de maquinaria a operarios, registro de órdenes con detalle polimórfico, validación de pago y entrega exitosa.
+  - Integración de `MiIndicador` en `main.py` para la obtención dinámica en tiempo real del valor del dólar (USD a CLP) con mecanismo de respaldo (fallback).
+  - Pruebas integrales de dominio: instanciación de cotizaciones cambiarias, cálculo de precios de insumos químicos en CLP con dólar en vivo, asignación de maquinaria a operarios, registro de órdenes con detalle polimórfico, validación de pago y entrega exitosa.
   - Verificación de consistencia y ejecución sin errores en consola.

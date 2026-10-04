@@ -1,6 +1,9 @@
 from datetime import date
 from conectar import crear_conexion
 
+# Importación del Servicio de Indicadores Económicos (API)
+from servicios.miinidicador import MiIndicador
+
 # Importación de DAOs
 from dao.cliente_dao import ClienteDAO
 from dao.empleado_dao import EmpleadoDAO
@@ -70,10 +73,18 @@ def main():
     print("-> ¡Tablas creadas exitosamente en la base de datos 'lavanderia.db'!")
 
     # ------------------------------------------------------------------
-    # 2. PRUEBA DE DOMINIO: INSUMOS QUÍMICOS Y COTIZACIÓN DEL DÓLAR
+    # 2. PRUEBA DE DOMINIO: INSUMOS QUÍMICOS Y COTIZACIÓN DEL DÓLAR (VÍA SERVICIO API)
     # ------------------------------------------------------------------
-    print("\n[2] Configuración de cotización y cálculo de precios de insumos...")
-    cotizacion = CotizacionDolar(fecha=date.today(), valor_dolar=945.50)
+    print("\n[2] Configuración de cotización y cálculo de precios de insumos mediante API...")
+    try:
+        indicador_service = MiIndicador()
+        valor_dolar_api = indicador_service.obtener_valor("dolar")
+        print(f"-> Cotización del Dólar obtenida desde mindicador.cl API: ${valor_dolar_api:,.2f} CLP")
+    except Exception as e:
+        valor_dolar_api = 945.50
+        print(f"-> No se pudo conectar a la API ({e}). Usando valor por defecto: ${valor_dolar_api:,.2f} CLP")
+
+    cotizacion = CotizacionDolar(fecha=date.today(), valor_dolar=valor_dolar_api)
     print(f"-> {cotizacion}")
 
     detergente_bio = ProductoQuimico(nombre="Detergente Enzimático Bio", precio_dolar=4.50)

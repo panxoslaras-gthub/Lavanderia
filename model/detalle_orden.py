@@ -4,7 +4,7 @@ class DetalleOrden: # Define la clase DetalleOrden para cada línea de prendas e
     def __init__(self, prenda: Prenda, cantidad: int):
         self.__prenda: Prenda = prenda # Referencia al objeto Prenda
         self.cantidad = cantidad # Cantidad de prendas validada
-        self.__subtotal: float = self.calcular_subtotal() # Calcula el subtotal inicial
+        # Eliminamos la línea de self.__subtotal que generaba redundancia
 
     @property
     def prenda(self) -> Prenda: # Getter para la prenda
@@ -26,8 +26,8 @@ class DetalleOrden: # Define la clase DetalleOrden para cada línea de prendas e
 
     def calcular_subtotal(self) -> float: # Calcula el subtotal multiplicando costo unitario por cantidad
         costo_unitario = self.__prenda.calcular_costo()
-        self.__subtotal = round(costo_unitario * self.__cantidad, 2)
-        return self.__subtotal
+        # Retornamos el cálculo directamente sin guardarlo en una variable
+        return round(costo_unitario * self.__cantidad, 2)
 
     def calcularSubtotal(self) -> float: # Alias camelCase según diagrama UML
         return self.calcular_subtotal()

@@ -1,7 +1,8 @@
 from datetime import date
 from conectar import crear_conexion
 # Importación del Servicio de Indicadores Económicos (API)
-from servicios.miinidicador import MiIndicador
+from servicios.miindicador import MiIndicador
+
 
 # Importación de DAOs
 from dao.cliente_dao import ClienteDAO

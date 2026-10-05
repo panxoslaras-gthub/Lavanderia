@@ -20,6 +20,10 @@ class Operario(Empleado): # Define la clase Operario que hereda de Empleado
         if maquina not in self.__maquinas_asignadas:
             self.__maquinas_asignadas.append(maquina)
 
+    def asignarMaquina(self, maquina: Maquina) -> None: # Alias camelCase según diagrama UML
+        self.asignar_maquina(maquina)
+
+
     def procesar_prenda(self, prenda: Prenda) -> None: # Método para procesar y preparar la prenda
         print(f"Operario #{self.id_empleado} procesando prenda {prenda}...")
         print(f"  -> Tiempo estimado de lavado: {prenda.calcular_tiempo_lavado()} minutos.")

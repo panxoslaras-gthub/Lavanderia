@@ -25,7 +25,8 @@ class MiIndicador:
 
         except requests.exceptions.HTTPError as error_http:
             print(f"Disculpe, tuvimos un problema de comunicación con la página de indicadores: {error_http}")
-            return None
+            raise error_http
         except requests.exceptions.RequestException as error_conexion:
             print(f"Hubo un problema de conexión al intentar obtener los datos: {error_conexion}")
-            return None
+            raise error_conexion
+

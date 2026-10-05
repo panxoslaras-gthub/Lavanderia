@@ -11,8 +11,9 @@ class ClienteDAO(DAO):
         """)
 
     def insertar(self, cliente: Cliente) -> None:
-        self._cursor.execute("INSERT OR REPLACE INTO cliente (rut) VALUES (?)", (cliente.rut,))
-        self._conexion.commit()
+        self.cursor.execute("INSERT OR REPLACE INTO cliente (rut) VALUES (?)", (cliente.rut,))
+        self.conexion.commit()
+
         
     def obtener_por_rut(self, rut: str) -> Optional[Cliente]:
         self.cursor.execute("SELECT rut FROM cliente WHERE rut = ?", (rut.strip().upper(),))

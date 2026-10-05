@@ -17,6 +17,11 @@ class Empleado(ABC): # Define la clase abstracta base Empleado
     @property
     def idEmpleado(self) -> int: # Alias camelCase según diagrama UML
         return self.id_empleado
+
+    @idEmpleado.setter
+    def idEmpleado(self, valor: int) -> None:
+        self.id_empleado = valor
+
     @abstractmethod
     def __str__(self) -> str:
         pass

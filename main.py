@@ -43,13 +43,13 @@ def solicitar_entero_positivo(mensaje: str) -> int:
 
 def solicitar_rut() -> str:
     while True:
-        rut_str = input("Ingrese el RUT del cliente (ejemplo: 12345678-5): ").strip()
+        rut_str = input("Ingrese el RUT del cliente (con puntos y guion): ").strip()
         try:
             cliente_temp = Cliente(rut=rut_str)
             if cliente_temp.validar_rut():
                 return rut_str
             else:
-                print("Error: Formato o digito verificador de RUT invalido. Intente de nuevo.")
+                print("Formato invalido. Intente de nuevo (RECUERDA: ingresar rut con puntos y guion.")
         except ValueError as e:
             print(f"Error: {e}")
 

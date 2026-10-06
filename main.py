@@ -43,17 +43,15 @@ def solicitar_entero_positivo(mensaje: str) -> int:
 
 def solicitar_rut() -> str:
     while True:
-        rut_str = input("Ingrese el RUT del cliente (ejemplo: 12345678-5): ").strip()
+        rut_str = input("Ingrese el RUT del cliente (con guion y digito verificador): ").strip()
         try:
             cliente_temp = Cliente(rut=rut_str)
             if cliente_temp.validar_rut():
                 return rut_str
             else:
-                print("Error: Formato o digito verificador de RUT invalido. Intente de nuevo.")
+                print("Formato invalido. Intente de nuevo (RECUERDA: ingresar guion y digito verificador.")
         except ValueError as e:
             print(f"Error: {e}")
-
-
 def main():
     print("================================================================")
     print("           SISTEMA DE GESTIÓN DE LAVANDERÍA INTERACTIVO")
@@ -148,8 +146,24 @@ def main():
         opcion_prenda = input("Seleccione el tipo de prenda (1-3): ").strip()
 
         print("\n--- Estado de la Prenda ---")
-        print("Estados válidos: sucio, delicado, manchado, regular")
-        estado = input("Ingrese el estado de la prenda: ").strip().lower()
+        print("Seleccione el estado ingresando un número entre 1 y 5:")
+        print("  1. Bueno")
+        print("  2. Regular")
+        print("  3. Manchado")
+        print("  4. Delicado")
+        print("  5. Sucio")
+        estados_map = {1: "bueno", 2: "regular", 3: "manchado", 4: "delicado", 5: "sucio"}
+        while True:
+            opcion_estado = input("Ingrese el estado de la prenda (1-5): ").strip()
+            try:
+                opcion_estado_int = int(opcion_estado)
+                if 1 <= opcion_estado_int <= 5:
+                    estado = estados_map[opcion_estado_int]
+                    break
+                else:
+                    print("Formato invalido. Ingrese una opcion entre 1 y 5.")
+            except ValueError:
+                print("Formato invalido. Ingrese una opcion entre 1 y 5.")
 
         if opcion_prenda == "1":
             lavado_seco_input = input("¿Requiere Lavado al Seco? (s/n): ").strip().lower()

@@ -106,10 +106,37 @@ def main():
     desmanchador = ProductoQuimico(nombre="Desmanchador Alcalino Pro", precio_dolar=6.00)
 
     # 3. REGISTRO INTERACTIVO DE PERSONAL Y MAQUINARIAS
-    print("\n[3] Registro de Personal y Maquinarias")
-    id_cajero = solicitar_entero_positivo("Ingrese ID del Cajero a cargo: ")
-    cajero = Cajero(id_empleado=id_cajero)
+    import getpass
+    import sys
 
+    print("\n--- SISTEMA DE AUTENTICACIÓN DE CAJERO ---")
+    intentos_restantes = 3
+    cajero_autenticado = False
+
+    while intentos_restantes > 0:
+        try:
+            id_ingresado = solicitar_entero_positivo("Ingrese ID del Cajero: ")
+            # getpass oculta los caracteres en la terminal
+            pwd_ingresada = getpass.getpass("Ingrese su contraseña: ") 
+
+            if cajero_dao.autenticar(id_ingresado, pwd_ingresada):
+                print("\n-> ¡Acceso concedido!")
+                cajero = Cajero(id_empleado=id_ingresado, password=pwd_ingresada)
+                cajero_autenticado = True
+                break
+            else:
+                intentos_restantes -= 1
+                print(f"Error: Credenciales incorrectas. Intentos restantes: {intentos_restantes}")
+    
+        except ValueError as e:
+            # Esto captura si el setter del modelo Cajero rechaza la contraseña
+            print(f"Error de validación: {e}")
+
+    if not cajero_autenticado:
+        print("\nAcceso bloqueado por múltiples intentos fallidos. Cerrando el sistema por seguridad.")
+        sys.exit() # Detiene la ejecución del programa completo
+
+    
     id_operario = solicitar_entero_positivo("Ingrese ID del Operario a cargo: ")
     operario = Operario(id_empleado=id_operario)
 

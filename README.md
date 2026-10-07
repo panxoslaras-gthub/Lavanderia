@@ -189,3 +189,6 @@ Lavanderia/
   - Verificación de consistencia y ejecución sin errores en consola.
 
 ### 5 de Octubre de 2026
+
+-**Revisión final de código mediante las pruebas de funcionalidad en la terminal de visual studio code,
+  -git's Pull's, git's commit's y los git's Push's correspondientes para la revisión del docente.

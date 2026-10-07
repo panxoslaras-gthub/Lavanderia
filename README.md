@@ -7,13 +7,46 @@ Repositorio para la asignatura de Programación Orientada a Objetos Seguro.
 **Alumnos:** Francisco Lara, Genesis Sepúlveda  
 
 ---
+### Cómo instalar y ejecutar el programa:
 
-## Descripción del Proyecto
+Para ejecutar este sistema de forma local, sigue estos pasos:
+
+1. Clona este repositorio en tu máquina local.
+2. Asegúrate de tener Python version correctamente instalado.
+3. Instala las dependencias necesarias ejecutando el siguiente comando en la terminal:
+   `pip install -r requirements.txt`
+4. Ejecuta el programa principal mediante:
+   `python main.py`
+5. La base de datos `lavanderia.db` y las tablas necesarias se crearán automáticamente en la primera ejecución.
+
+---
+### Decisiones de Seguridad:
+
+### Prevención de Inyección SQL
+Para interactuar con la base de datos SQLite, se implementó el patrón DAO (Data Access Object), separando la lógica de negocio de la persistencia. Para evitar ataques de inyección SQL, **todas las consultas en los archivos DAO utilizan consultas parametrizadas** (ejemplo: uso de `?` en los métodos `.execute()`), evitando la concatenación directa de strings o f-strings con datos ingresados por el usuario.
+
+### Validaciones de Entrada
+Se implementaron mecanismos defensivos para garantizar la estabilidad del sistema:
+*   **Validación de Tipos y Rangos:** Se crearon funciones como `solicitar_entero_positivo()` que utilizan ciclos `while` y bloques `try/except ValueError` para atrapar datos alfanuméricos ingresados por error sin detener el programa.
+*   **Seguridad de Credenciales:** Se incorporó la librería `getpass` para ocultar la contraseña del cajero al momento de digitarla en la terminal.
+*   **Validación de RUT:** El sistema valida la estructura matemática del RUT antes de instanciar un cliente o buscarlo en la base de datos.
+---
+## Uso de Herramientas de Inteligencia Artificial
+
+Durante el desarrollo de este proyecto, utilizamos IA (ChatGPT/Gemini/Claude) como apoyo en las siguientes áreas:
+
+*   **Código sugerido:** Le pedimos a la IA que nos generara una función para ocultar los caracteres de la contraseña en la terminal, ya que `input()` mostraba los números.
+*   **Código adoptado:** La IA sugirió utilizar la librería estándar `getpass`.
+*   **Razón técnica de adopción:** Decidimos adoptarlo porque cumple exactamente con el requerimiento de seguridad visual sin necesidad de instalar librerías de terceros complejas, manteniendo el programa ligero y compatible. Sin embargo, descartamos una sugerencia de la IA que proponía encriptar las contraseñas con `bcrypt` en la base de datos, ya que excedía el alcance actual del modelo y la rúbrica, optando por mantener la simplicidad en esta etapa de desarrollo.
+
+---
+###   Descripción del Proyecto
 
 Sistema modular orientado a objetos para la gestión integral de un negocio de **Lavandería**.
 
-El sistema aplica buenas prácticas de diseño de software y principios fundamentales de la Programación Orientada a Objetos:
-* **Encapsulamiento estricto:** Atributos privados (`__atributo`), validación de integridad mediante propiedades `@property` y decoradores setter.
+Lo que aplicamos al software referente a POO:
+
+* **Encapsulamiento estricto:** Atributos privados (`_atributo`), validación de integridad mediante propiedades `@property` y decoradores setter.
 * **Herencia y Polimorfismo:** Jerarquías de clases para personal (`Empleado` -> `Cajero`, `Operario`) y prendas (`Prenda` -> `RopaNormal`, `Alfombra`, `EdredonCobertor`), con cálculo dinámico de costos y tiempos de ciclo según tipo de prenda y tratamiento.
 * **Separación de Responsabilidades (Capa DAO):** Capa de acceso a datos relacional SQLite (`lavanderia.db`) que abstrae las operaciones de persistencia mediante especialización de la clase base `DAO`.
 * **Manejo de Moneda Extranjera:** Conversión de insumos químicos en dólares (USD) a pesos chilenos (CLP) en base a `CotizacionDolar`.
@@ -154,3 +187,5 @@ Lavanderia/
   - Integración de `MiIndicador` en `main.py` para la obtención dinámica en tiempo real del valor del dólar (USD a CLP) con mecanismo de respaldo (fallback).
   - Pruebas integrales de dominio: instanciación de cotizaciones cambiarias, cálculo de precios de insumos químicos en CLP con dólar en vivo, asignación de maquinaria a operarios, registro de órdenes con detalle polimórfico, validación de pago y entrega exitosa.
   - Verificación de consistencia y ejecución sin errores en consola.
+
+### 5 de Octubre de 2026

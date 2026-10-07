@@ -20,3 +20,10 @@ class CajeroDAO(EmpleadoDAO):
         if resultado:
             return resultado[0] == password_ingresada
         return False
+
+    def registrar(self, id_empleado:int, password.str)-> None:
+        cursor = self.conexion.cursor()
+        cursor.execute(
+            "INSERT INTO cajero (id_empleado, password) VALUES (?,?)",
+        (id_empleado, password),)
+        self.conexion.commit()

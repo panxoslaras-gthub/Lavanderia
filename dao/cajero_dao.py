@@ -12,7 +12,7 @@ class CajeroDAO(EmpleadoDAO):
         """)
         self.conexion.commit()
         
-    def autenticar(self,id_empleado: int, password_ingresada: str) -> bool:
+    def autenticar(self, id_empleado: int, password_ingresada: str) -> bool:
         query = "SELECT password FROM cajero WHERE id_empleado = ?"
         cursor = self.conexion.cursor()
         cursor.execute(query, (id_empleado,))
@@ -21,9 +21,9 @@ class CajeroDAO(EmpleadoDAO):
             return resultado[0] == password_ingresada
         return False
 
-    def registrar(self,id_empleado: int, password_ingresada: str)-> None:
+    def registrar(self, id_empleado: int, password_ingresada: str) -> None:
         cursor = self.conexion.cursor()
         cursor.execute(
             "INSERT INTO cajero (id_empleado, password) VALUES (?,?)",
-        (id_empleado, password),)
+        (id_empleado, password_ingresada),)
         self.conexion.commit()

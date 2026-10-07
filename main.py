@@ -52,7 +52,30 @@ def solicitar_rut() -> str:
                 print("Formato invalido. Intente de nuevo (RECUERDA: ingresar guion y digito verificador.")
         except ValueError as e:
             print(f"Error: {e}")
-def main():
+
+def solicitar_fecha() -> str:
+    while True:
+        valor = input("Ingrese la fecha de la orden (AAAA-MM-DD): ").strip()
+        try:
+            return date.fromisoformat(valor).isoformat()
+        except ValueError:
+            print("Formato inválido. Use el formato AAAA-MM-DD.")
+
+def solicitar_num_boleta(orden_dao: OrdenDAO) -> str:
+    """Solicita y valida un número de boleta no vacío e irrepetible en la base de datos."""
+    while True:
+        boleta = input("Ingrese el Número de Boleta (ej. B-2026-0001): ").strip()
+        if not boleta:
+            print("Error: El número de boleta no puede estar vacío.")
+            continue
+        
+        # Validación de duplicados contra la Base de Datos
+        if orden_dao.existe_num_boleta(boleta):
+            print(f"Error: La boleta '{boleta}' ya existe en el sistema. Ingrese un número irrepetible.")
+        else:
+            return boleta
+        
+def ingresar_nueva_orden():
     print("================================================================")
     print("           SISTEMA DE GESTIÓN DE LAVANDERÍA INTERACTIVO")
     print("================================================================")
@@ -140,7 +163,6 @@ def main():
         print("\nAcceso bloqueado por múltiples intentos fallidos. Cerrando el sistema por seguridad.")
         sys.exit() # Detiene la ejecución del programa completo
 
-    
     id_operario = solicitar_entero_positivo("Ingrese ID del Operario a cargo: ")
     operario = Operario(id_empleado=id_operario)
 
@@ -154,14 +176,15 @@ def main():
     print(f"   * {cajero}")
     print(f"   * {operario} (Máquinas asignadas: {[m.id_maquina for m in operario.maquinas_asignadas]})")
 
-    # 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
+# 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
     print("\n[4] Creación de Orden de Servicio")
     rut_cliente = solicitar_rut()
     cliente = Cliente(rut=rut_cliente)
     cliente_dao.insertar(cliente)
 
-    num_orden = solicitar_entero_positivo("Ingrese el Número de Orden (ej. 1001): ")
-    num_boleta = input("Ingrese el Número de Boleta (ej. B-2026-0001): ").strip()
+    fecha = solicitar_fecha()
+    num_orden = 1
+    num_boleta = ""
 
     cajero.recibir_prendas()
     cajero.registrar_orden()
@@ -230,17 +253,39 @@ def main():
         pagada=False
     )
 
+    tiempo_lavado = sum(
+        detalle.cantidad * detalle.prenda.calcular_tiempo_lavado()
+        for detalle in orden.detalles
+    )
+
+    orden_dao.guardar_respaldo(
+        orden,
+        fecha,
+        operario,
+        tiempo_lavado,
+    )
+
     print("\n================================================================")
-    print(f" RESUMEN DE LA ORDEN #{orden.num_orden} - BOLETA {orden.num_boleta}")
+    print(f" RESUMEN DE LA ORDEN #{orden.num_orden:04d} - BOLETA (pendiente)")
     print("================================================================")
     print(f"Cliente RUT: {orden.cliente.rut}")
     print(f"Cajero a cargo ID: {orden.cajero.id_empleado}")
+    print(f"Fecha: {fecha}")
+    print(f"Operario a cargo ID: {operario.id_empleado}")
+    print(f"Tiempo estimado de lavado: {tiempo_lavado} minutos")
+    print(
+        "Máquinas a usar: "
+        f"{[maquina.id_maquina for maquina in operario.maquinas_asignadas]}"
+    )
+    print("Estado: En Proceso")
     print("Prendas ingresadas:")
     for d in orden.detalles:
         print(f"   * {d}")
-
     total_orden = orden.calcular_total()
     print(f"\n-> TOTAL A PAGAR: ${total_orden:,.0f} CLP")
+    input("¡Orden registrada! [Presione ENTER para continuar]")
+    conexion.close()
+    return
 
     # 6. PROCESO DE OPERACIÓN Y PAGO INTERACTIVO
     print("\n[6] Procesamiento en Planta y Lavado")
@@ -267,7 +312,25 @@ def main():
     print("     EJECUCIÓN DEL SISTEMA COMPLETADA EXITOSAMENTE")
     print("================================================================")
 
+def main():
+    while True:
+        print("\n¿Qué desea hacer?")
+        print("1. Ingresar Nueva Orden")
+        print("2. Actualizar Orden Existente")
+        print("3. Salir")
 
+        opcion = input("Seleccione una opción (1-3): ").strip()
+
+        if opcion == "1":
+            ingresar_nueva_orden()
+        elif opcion == "2":
+            print("La opción para actualizar órdenes todavía no está implementada.")
+        elif opcion == "3":
+            print("Saliendo del sistema.")
+            return
+        else:
+            print("Opción inválida. Ingrese 1, 2 o 3.")
+            
 if __name__ == "__main__":
     main()
 

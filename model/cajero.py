@@ -1,9 +1,20 @@
 from model.empleado import Empleado
 
 class Cajero(Empleado): # Define la clase Cajero heredando de Empleado
-    def __init__(self, id_empleado: int): # Constructor que recibe el id del cajero
+    def __init__(self, id_empleado, password=""): # Constructor que recibe el id del cajero
         super().__init__(id_empleado) # Llama al constructor de la clase base Empleado
+        self.password = password
+        
+    @property
+    def password(self):
+            return self._password
 
+    @password.setter
+    def password(self, value):
+        if len(value) < 4:
+            raise ValueError("por seguridad, la contraseña debe tener al menos 4 caracteres.")
+        self._password = value
+        
     def recibir_prendas(self) -> None: # Método para registrar la recepción de prendas del cliente
         print(f"Cajero #{self.id_empleado} ha recibido las prendas del cliente.")
 

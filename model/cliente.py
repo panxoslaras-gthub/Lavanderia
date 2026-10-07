@@ -12,7 +12,7 @@ class Cliente: # Define la clase Cliente
     def rut(self, valor: str) -> None: # Setter con validación de RUT chileno básico
         valor_limpio = valor.strip().replace(".", "").upper()
         if not re.match(r"^\d{7,8}-[\dK]$", valor_limpio):
-            raise ValueError(f"El RUT '{valor}' no tiene un formato válido (ejemplo: 12345678-9).")
+            raise ValueError(f"Formato invalido del rut '{valor}'. Intente nuevamente (RECUERDA: ingresar guion y digito verificador.")
         self.__rut: str = valor_limpio
 
     def validar_rut(self) -> bool: # Método para verificar si el dígito verificador del RUT es correcto

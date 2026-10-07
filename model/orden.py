@@ -25,10 +25,12 @@ class Orden: # Define la clase Orden para gestionar el pedido de servicio
         return self.__num_orden
 
     @num_orden.setter
-    def num_orden(self, valor: int) -> None: # Setter con validación
-        if not isinstance(valor, int) or valor <= 0:
-            raise ValueError("El número de orden debe ser un entero positivo mayor a 0.")
-        self.__num_orden: int = valor
+    def num_orden(self, valor: int) -> None:
+        if isinstance(valor, bool) or not isinstance(valor, int):
+            raise TypeError("El número de orden debe ser un número entero.")
+        if valor <= 0:
+            raise ValueError("El número de orden debe ser un entero entre 1 y 999.999.999.")
+        self.__num_orden = valor
 
     @property
     def numOrden(self) -> int: # Alias camelCase según diagrama UML
@@ -39,10 +41,10 @@ class Orden: # Define la clase Orden para gestionar el pedido de servicio
         return self.__num_boleta
 
     @num_boleta.setter
-    def num_boleta(self, valor: str) -> None: # Setter con validación
-        if not valor or not valor.strip():
-            raise ValueError("El número de boleta no puede estar vacío.")
-        self.__num_boleta: str = valor.strip()
+    def num_boleta(self, valor: str) -> None:
+        if not isinstance(valor, str):
+            raise TypeError("El número de boleta debe ser texto.")
+        self.__num_boleta = valor.strip()
 
     @property
     def numBoleta(self) -> str: # Alias camelCase según diagrama UML

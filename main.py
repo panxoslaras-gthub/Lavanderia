@@ -43,18 +43,39 @@ def solicitar_entero_positivo(mensaje: str) -> int:
 
 def solicitar_rut() -> str:
     while True:
-        rut_str = input("Ingrese el RUT del cliente (con puntos y guion): ").strip()
+        rut_str = input("Ingrese el RUT del cliente (con guion y digito verificador): ").strip()
         try:
             cliente_temp = Cliente(rut=rut_str)
             if cliente_temp.validar_rut():
                 return rut_str
             else:
-                print("Formato invalido. Intente de nuevo (RECUERDA: ingresar rut con puntos y guion.")
+                print("Formato invalido. Intente de nuevo (RECUERDA: ingresar guion y digito verificador.")
         except ValueError as e:
             print(f"Error: {e}")
 
+def solicitar_fecha() -> str:
+    while True:
+        valor = input("Ingrese la fecha de la orden (AAAA-MM-DD): ").strip()
+        try:
+            return date.fromisoformat(valor).isoformat()
+        except ValueError:
+            print("Formato inválido. Use el formato AAAA-MM-DD.")
 
-def main():
+def solicitar_num_boleta(orden_dao: OrdenDAO) -> str:
+    """Solicita y valida un número de boleta no vacío e irrepetible en la base de datos."""
+    while True:
+        boleta = input("Ingrese el Número de Boleta (ej. B-2026-0001): ").strip()
+        if not boleta:
+            print("Error: El número de boleta no puede estar vacío.")
+            continue
+        
+        # Validación de duplicados contra la Base de Datos
+        if orden_dao.existe_num_boleta(boleta):
+            print(f"Error: La boleta '{boleta}' ya existe en el sistema. Ingrese un número irrepetible.")
+        else:
+            return boleta
+        
+def ingresar_nueva_orden():
     print("================================================================")
     print("           SISTEMA DE GESTIÓN DE LAVANDERÍA INTERACTIVO")
     print("================================================================")
@@ -108,9 +129,39 @@ def main():
     desmanchador = ProductoQuimico(nombre="Desmanchador Alcalino Pro", precio_dolar=6.00)
 
     # 3. REGISTRO INTERACTIVO DE PERSONAL Y MAQUINARIAS
-    print("\n[3] Registro de Personal y Maquinarias")
-    id_cajero = solicitar_entero_positivo("Ingrese ID del Cajero a cargo: ")
-    cajero = Cajero(id_empleado=id_cajero)
+    import getpass
+    import sys
+
+    print("\n--- SISTEMA DE AUTENTICACIÓN DE CAJERO ---")
+    import sqlite3
+    from cajero_dao import CajeroDao
+    
+    cajero_dao.registrar(1,"1234")
+    intentos_restantes = 3
+    cajero_autenticado = False
+
+    while intentos_restantes > 0:
+        try:
+            id_ingresado = solicitar_entero_positivo("Ingrese ID del Cajero: ")
+            # getpass oculta los caracteres en la terminal
+            pwd_ingresada = getpass.getpass("Ingrese su contraseña: ") 
+
+            if cajero_dao.autenticar(id_ingresado, pwd_ingresada):
+                print("\n-> ¡Acceso concedido!")
+                cajero = Cajero(id_empleado=id_ingresado, password=pwd_ingresada)
+                cajero_autenticado = True
+                break
+            else:
+                intentos_restantes -= 1
+                print(f"Error: Credenciales incorrectas. Intentos restantes: {intentos_restantes}")
+    
+        except ValueError as e:
+            # Esto captura si el setter del modelo Cajero rechaza la contraseña
+            print(f"Error de validación: {e}")
+
+    if not cajero_autenticado:
+        print("\nAcceso bloqueado por múltiples intentos fallidos. Cerrando el sistema por seguridad.")
+        sys.exit() # Detiene la ejecución del programa completo
 
     id_operario = solicitar_entero_positivo("Ingrese ID del Operario a cargo: ")
     operario = Operario(id_empleado=id_operario)
@@ -125,14 +176,15 @@ def main():
     print(f"   * {cajero}")
     print(f"   * {operario} (Máquinas asignadas: {[m.id_maquina for m in operario.maquinas_asignadas]})")
 
-    # 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
+# 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
     print("\n[4] Creación de Orden de Servicio")
     rut_cliente = solicitar_rut()
     cliente = Cliente(rut=rut_cliente)
     cliente_dao.insertar(cliente)
 
-    num_orden = solicitar_entero_positivo("Ingrese el Número de Orden (ej. 1001): ")
-    num_boleta = input("Ingrese el Número de Boleta (ej. B-2026-0001): ").strip()
+    fecha = solicitar_fecha()
+    num_orden = 1
+    num_boleta = ""
 
     cajero.recibir_prendas()
     cajero.registrar_orden()
@@ -148,8 +200,24 @@ def main():
         opcion_prenda = input("Seleccione el tipo de prenda (1-3): ").strip()
 
         print("\n--- Estado de la Prenda ---")
-        print("Estados válidos: sucio, delicado, manchado, regular")
-        estado = input("Ingrese el estado de la prenda: ").strip().lower()
+        print("Seleccione el estado ingresando un número entre 1 y 5:")
+        print("  1. Bueno")
+        print("  2. Regular")
+        print("  3. Manchado")
+        print("  4. Delicado")
+        print("  5. Sucio")
+        estados_map = {1: "bueno", 2: "regular", 3: "manchado", 4: "delicado", 5: "sucio"}
+        while True:
+            opcion_estado = input("Ingrese el estado de la prenda (1-5): ").strip()
+            try:
+                opcion_estado_int = int(opcion_estado)
+                if 1 <= opcion_estado_int <= 5:
+                    estado = estados_map[opcion_estado_int]
+                    break
+                else:
+                    print("Formato invalido. Ingrese una opcion entre 1 y 5.")
+            except ValueError:
+                print("Formato invalido. Ingrese una opcion entre 1 y 5.")
 
         if opcion_prenda == "1":
             lavado_seco_input = input("¿Requiere Lavado al Seco? (s/n): ").strip().lower()
@@ -185,17 +253,39 @@ def main():
         pagada=False
     )
 
+    tiempo_lavado = sum(
+        detalle.cantidad * detalle.prenda.calcular_tiempo_lavado()
+        for detalle in orden.detalles
+    )
+
+    orden_dao.guardar_respaldo(
+        orden,
+        fecha,
+        operario,
+        tiempo_lavado,
+    )
+
     print("\n================================================================")
-    print(f" RESUMEN DE LA ORDEN #{orden.num_orden} - BOLETA {orden.num_boleta}")
+    print(f" RESUMEN DE LA ORDEN #{orden.num_orden:04d} - BOLETA (pendiente)")
     print("================================================================")
     print(f"Cliente RUT: {orden.cliente.rut}")
     print(f"Cajero a cargo ID: {orden.cajero.id_empleado}")
+    print(f"Fecha: {fecha}")
+    print(f"Operario a cargo ID: {operario.id_empleado}")
+    print(f"Tiempo estimado de lavado: {tiempo_lavado} minutos")
+    print(
+        "Máquinas a usar: "
+        f"{[maquina.id_maquina for maquina in operario.maquinas_asignadas]}"
+    )
+    print("Estado: En Proceso")
     print("Prendas ingresadas:")
     for d in orden.detalles:
         print(f"   * {d}")
-
     total_orden = orden.calcular_total()
     print(f"\n-> TOTAL A PAGAR: ${total_orden:,.0f} CLP")
+    input("¡Orden registrada! [Presione ENTER para continuar]")
+    conexion.close()
+    return
 
     # 6. PROCESO DE OPERACIÓN Y PAGO INTERACTIVO
     print("\n[6] Procesamiento en Planta y Lavado")
@@ -222,7 +312,25 @@ def main():
     print("     EJECUCIÓN DEL SISTEMA COMPLETADA EXITOSAMENTE")
     print("================================================================")
 
+def main():
+    while True:
+        print("\n¿Qué desea hacer?")
+        print("1. Ingresar Nueva Orden")
+        print("2. Actualizar Orden Existente")
+        print("3. Salir")
 
+        opcion = input("Seleccione una opción (1-3): ").strip()
+
+        if opcion == "1":
+            ingresar_nueva_orden()
+        elif opcion == "2":
+            print("La opción para actualizar órdenes todavía no está implementada.")
+        elif opcion == "3":
+            print("Saliendo del sistema.")
+            return
+        else:
+            print("Opción inválida. Ingrese 1, 2 o 3.")
+            
 if __name__ == "__main__":
     main()
 

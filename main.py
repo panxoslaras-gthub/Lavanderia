@@ -110,6 +110,10 @@ def main():
     import sys
 
     print("\n--- SISTEMA DE AUTENTICACIÓN DE CAJERO ---")
+    import sqlite3
+    from cajero_dao import CajeroDao
+    
+    cajero_dao.registrar(1,"1234")
     intentos_restantes = 3
     cajero_autenticado = False
 

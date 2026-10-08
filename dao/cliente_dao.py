@@ -27,3 +27,21 @@ class ClienteDAO(DAO):
         self.cursor.execute("SELECT rut FROM cliente")
         return [Cliente(row[0]) for row in self.cursor.fetchall()]
 
+    def actualizar(self, rut_actual: str, nuevo_rut: str) -> bool:
+        """Modifica el RUT de un cliente existente utilizando consultas parametrizadas."""
+        self.cursor.execute(
+            "UPDATE cliente SET rut = ? WHERE rut = ?",
+            (nuevo_rut.strip().upper(), rut_actual.strip().upper()),
+        )
+        self.conexion.commit()
+        return self.cursor.rowcount > 0
+
+    def eliminar(self, rut: str) -> bool:
+        """Elimina un cliente de la base de datos utilizando consultas parametrizadas."""
+        self.cursor.execute(
+            "DELETE FROM cliente WHERE rut = ?",
+            (rut.strip().upper(),),
+        )
+        self.conexion.commit()
+        return self.cursor.rowcount > 0
+

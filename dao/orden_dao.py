@@ -25,6 +25,20 @@ class OrdenDAO(DAO):
             )
         """)
 
+        self.cursor.execute("""
+            INSERT INTO sqlite_sequence (name, seq)
+            SELECT 'orden_respaldo', 100
+            WHERE NOT EXISTS (
+                SELECT 1 FROM sqlite_sequence
+                WHERE name = 'orden_respaldo'
+            )
+        """)
+        self.cursor.execute("""
+            UPDATE sqlite_sequence
+            SET seq = MAX(seq, 100)
+            WHERE name = 'orden_respaldo'
+        """)
+
     def guardar_respaldo(
         self,
         orden: Orden,
@@ -85,6 +99,101 @@ class OrdenDAO(DAO):
             )
 
             self.conexion.commit()
+
+        except Exception:
+            self.conexion.rollback()
+            raise
+
+    def obtener_respaldo(self, num_orden: int) -> dict | None:
+        fila = self.conexion.execute(
+            """
+            SELECT num_boleta, datos_json
+            FROM orden_respaldo
+            WHERE num_orden = ?
+            """,
+            (num_orden,),
+        ).fetchone()
+
+        if fila is None:
+            return None
+
+        datos = json.loads(fila[1])
+        datos["num_orden"] = num_orden
+        datos["num_boleta"] = fila[0]
+        return datos
+
+    def actualizar_estado(self, num_orden: int, nuevo_estado: str) -> None:
+        datos = self.obtener_respaldo(num_orden)
+        if datos is None:
+            raise ValueError(f"No existe la orden {num_orden}.")
+
+        transiciones = {
+            "En Proceso": "Listo Para Entrega",
+            "Listo Para Entrega": "Pagada_Cerrada",
+        }
+        estado_esperado = transiciones.get(datos["estado"])
+
+        if nuevo_estado != estado_esperado:
+            raise ValueError(
+                f"Transición inválida: {datos['estado']} -> {nuevo_estado}."
+            )
+
+        datos["estado"] = nuevo_estado
+        self.conexion.execute(
+            """
+            UPDATE orden_respaldo
+            SET datos_json = ?
+            WHERE num_orden = ?
+            """,
+            (json.dumps(datos, ensure_ascii=False), num_orden),
+        )
+        self.conexion.commit()
+
+    def asignar_num_boleta(self, num_orden: int) -> str:
+        try:
+            self.conexion.execute("BEGIN IMMEDIATE")
+
+            fila = self.conexion.execute(
+                """
+                SELECT num_boleta, datos_json
+                FROM orden_respaldo
+                WHERE num_orden = ?
+                """,
+                (num_orden,),
+            ).fetchone()
+
+            if fila is None:
+                raise ValueError(f"No existe la orden {num_orden}.")
+
+            if fila[0]:
+                self.conexion.commit()
+                return fila[0]
+
+            mayor_boleta = self.conexion.execute("""
+                SELECT MAX(CAST(num_boleta AS INTEGER))
+                FROM orden_respaldo
+                WHERE num_boleta <> ''
+                  AND num_boleta NOT GLOB '*[^0-9]*'
+            """).fetchone()[0]
+
+            num_boleta = str(max(mayor_boleta or 900, 900) + 1)
+            datos = json.loads(fila[1])
+            datos["num_boleta"] = num_boleta
+
+            self.conexion.execute(
+                """
+                UPDATE orden_respaldo
+                SET num_boleta = ?, datos_json = ?
+                WHERE num_orden = ?
+                """,
+                (
+                    num_boleta,
+                    json.dumps(datos, ensure_ascii=False),
+                    num_orden,
+                ),
+            )
+            self.conexion.commit()
+            return num_boleta
 
         except Exception:
             self.conexion.rollback()

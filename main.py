@@ -29,17 +29,42 @@ from model.edredon_cobertor import EdredonCobertor
 from model.detalle_orden import DetalleOrden
 from model.orden import Orden
 
-
 def solicitar_entero_positivo(mensaje: str) -> int:
     while True:
-        try:
-            val = int(input(mensaje).strip())
-            if val > 0:
-                return val
-            print("Error: Ingrese un número entero positivo mayor a 0.")
-        except ValueError:
-            print("Error: Entrada inválida. Debe ingresar un número entero.")
+        valor = input(mensaje).strip()
 
+        if not valor.isascii() or not valor.isdecimal():
+            print("Error: Entrada inválida. Debe ingresar un número entero.")
+            continue
+
+        numero = int(valor)
+        if numero > 0:
+            return numero
+
+        print("Error: Ingrese un número entero positivo mayor a 0.")
+
+def solicitar_numero_orden() -> int:
+    while True:
+        valor = input("Ingrese N° de Orden: ").strip()
+        if not valor.isascii() or not valor.isdecimal():
+            print("Formato inválido. Ingrese solo números enteros")
+            continue
+        return int(valor)
+
+def solicitar_si_no_editar() -> int:
+    while True:
+        valor = input("¿Desea editar?\n1. Sí\n2. No\nSeleccione: ").strip()
+        if not valor.isascii() or not valor.isdecimal():
+            print(
+                "Formato inválido. Ingrese solo números enteros entre 1-2"
+            )
+            continue
+
+        opcion = int(valor)
+        if opcion in (1, 2):
+            return opcion
+
+        print("Formato inválido. Ingrese solo números enteros entre 1-2")
 
 def solicitar_rut() -> str:
     while True:
@@ -61,19 +86,26 @@ def solicitar_fecha() -> str:
         except ValueError:
             print("Formato inválido. Use el formato AAAA-MM-DD.")
 
-def solicitar_num_boleta(orden_dao: OrdenDAO) -> str:
-    """Solicita y valida un número de boleta no vacío e irrepetible en la base de datos."""
-    while True:
-        boleta = input("Ingrese el Número de Boleta (ej. B-2026-0001): ").strip()
-        if not boleta:
-            print("Error: El número de boleta no puede estar vacío.")
-            continue
-        
-        # Validación de duplicados contra la Base de Datos
-        if orden_dao.existe_num_boleta(boleta):
-            print(f"Error: La boleta '{boleta}' ya existe en el sistema. Ingrese un número irrepetible.")
-        else:
-            return boleta
+def mostrar_resumen_guardado(datos: dict) -> None:
+    print("\n========================================")
+    print(f"RESUMEN DE LA ORDEN #{datos['num_orden']}")
+    print("========================================")
+    print(f"N° Boleta: {datos['num_boleta'] or '(pendiente)'}")
+    print(f"Fecha: {datos['fecha']}")
+    print(f"Cliente RUT: {datos['cliente_rut']}")
+    print(f"ID Cajero: {datos['cajero_id']}")
+    print(f"ID Operario: {datos['operario_id']}")
+    print(f"Tiempo de lavado: {datos['tiempo_lavado']} minutos")
+    print(f"Máquinas: {datos['maquinas']}")
+    print(f"Total a pagar: ${datos['total']:,.0f} CLP")
+    print(f"Estado: {datos['estado']}")
+    print("Detalle:")
+    for detalle in datos["detalles"]:
+        print(
+            f"  {detalle['cantidad']} x {detalle['tipo']} "
+            f"({detalle['estado']}) - "
+            f"${detalle['subtotal']:,.0f} CLP"
+        )
         
 def ingresar_nueva_orden():
     print("================================================================")
@@ -81,7 +113,7 @@ def ingresar_nueva_orden():
     print("================================================================")
 
     # 1. GESTIÓN DE BASE DE DATOS Y TABLAS
-    print("\n[1] Inicializando base de datos y tablas mediante capa DAO...")
+    print("\n[1] Inicializando interfaz de usuario")
     conexion = crear_conexion()
 
     cliente_dao = ClienteDAO(conexion)
@@ -109,14 +141,14 @@ def ingresar_nueva_orden():
     detalle_dao.crear_tabla()
 
     conexion.commit()
-    print("-> ¡Tablas verificadas e inicializadas en 'lavanderia.db'!")
+    print("¡Todo listo!")
 
     # 2. COTIZACIÓN DEL DÓLAR
-    print("\n[2] Obteniendo la cotización actual del Dólar...")
+    print("\n Obteniendo la cotización actual del Dólar...")
     try:
         indicador_service = MiIndicador()
         valor_dolar_api = indicador_service.obtener_valor("dolar")
-        print(f"-> Cotización obtenida desde mindicador.cl API: ${valor_dolar_api:,.2f} CLP")
+        print(f"Valor Dólar Actualizado: ${valor_dolar_api:,.2f} CLP")
     except Exception as e:
         valor_dolar_api = 945.50
         print(f"-> No se pudo conectar a la API ({e}). Usando valor por defecto: ${valor_dolar_api:,.2f} CLP")
@@ -133,10 +165,6 @@ def ingresar_nueva_orden():
     import sys
 
     print("\n--- SISTEMA DE AUTENTICACIÓN DE CAJERO ---")
-    import sqlite3
-    from cajero_dao import CajeroDao
-    
-    cajero_dao.registrar(1,"1234")
     intentos_restantes = 3
     cajero_autenticado = False
 
@@ -266,7 +294,7 @@ def ingresar_nueva_orden():
     )
 
     print("\n================================================================")
-    print(f" RESUMEN DE LA ORDEN #{orden.num_orden:04d} - BOLETA (pendiente)")
+    print(f" RESUMEN DE LA ORDEN #{orden.num_orden} - BOLETA (pendiente)")
     print("================================================================")
     print(f"Cliente RUT: {orden.cliente.rut}")
     print(f"Cajero a cargo ID: {orden.cajero.id_empleado}")
@@ -287,30 +315,130 @@ def ingresar_nueva_orden():
     conexion.close()
     return
 
-    # 6. PROCESO DE OPERACIÓN Y PAGO INTERACTIVO
-    print("\n[6] Procesamiento en Planta y Lavado")
-    for d in orden.detalles:
-        operario.procesar_prenda(d.prenda)
+def solicitar_siguiente_estado(estado_actual: str) -> str:
+    estados = {
+        1: "En Proceso",
+        2: "Listo Para Entrega",
+        3: "Pagada_Cerrada",
+    }
+    siguiente = {
+        "En Proceso": 2,
+        "Listo Para Entrega": 3,
+    }.get(estado_actual)
 
-    if operario.maquinas_asignadas:
-        operario.operar_maquina(operario.maquinas_asignadas[0])
+    if siguiente is None:
+        raise ValueError(f"El estado '{estado_actual}' no admite más cambios.")
 
-    print("\nIntentando entregar la orden antes de cobrar:")
-    orden.entregar_orden()
+    while True:
+        print("\nSeleccione el nuevo Estado de Orden:")
+        print("1. En Proceso")
+        print("2. Listo Para Entrega")
+        print("3. Pagada_Cerrada")
+        valor = input("Seleccione una opción (1-3): ").strip()
 
-    input("\nPresione [ENTER] para proceder al cobro y pago de la orden...")
-    cajero.cobrar_orden()
-    orden.pagar()
-    print(f"-> Estado de pago verificado: {orden.verificar_pago()}")
+        if not valor.isascii() or not valor.isdecimal():
+            print("Formato inválido. Seleccione un número entre 1 -3")
+            continue
 
-    print("\nEntregando prendas tras la verificación del pago:")
-    orden.entregar_orden()
-    cajero.entregar_prendas()
+        opcion = int(valor)
+        if opcion not in estados:
+            print("Formato inválido. Seleccione un número entre 1 -3")
+            continue
 
-    conexion.close()
-    print("\n================================================================")
-    print("     EJECUCIÓN DEL SISTEMA COMPLETADA EXITOSAMENTE")
-    print("================================================================")
+        if opcion != siguiente:
+            print("Transición no permitida. Seleccione el siguiente estado.")
+            continue
+
+        return estados[opcion]
+
+def actualizar_orden_existente() -> None:
+    conexion = crear_conexion()
+    orden_dao = OrdenDAO(conexion)
+
+    try:
+        orden_dao.crear_tabla()
+        conexion.commit()
+
+        num_orden = solicitar_numero_orden()
+        datos = orden_dao.obtener_respaldo(num_orden)
+
+        if datos is None:
+            print(f"No existe una orden registrada con el número {num_orden}.")
+            return
+
+        mostrar_resumen_guardado(datos)
+
+        if solicitar_si_no_editar() == 2:
+            return
+
+        if datos["estado"] == "Pagada_Cerrada":
+            print("La orden ya está cerrada y no admite más cambios.")
+            return
+
+        if datos["estado"] == "En Proceso":
+            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
+            orden_dao.actualizar_estado(num_orden, nuevo_estado)
+            datos = orden_dao.obtener_respaldo(num_orden)
+
+            maquinas = [
+                Maquina(id_maquina=int(id_maquina))
+                for id_maquina in datos["maquinas"]
+            ]
+            operario = Operario(
+                id_empleado=int(datos["operario_id"]),
+                maquinas_asignadas=maquinas,
+            )
+
+            print("\nProcesamiento de la orden")
+            for detalle in datos["detalles"]:
+                producto = ProductoQuimico(
+                    nombre=detalle["producto_quimico"],
+                    precio_dolar=0.0,
+                )
+
+                datos_prenda = {
+                    "estado_inicial": detalle["estado"],
+                    "lavado_seco": detalle["lavado_seco"],
+                    "producto_quimico": producto,
+                }
+
+                if detalle["tipo"] == "RopaNormal":
+                    prenda = RopaNormal(**datos_prenda)
+                elif detalle["tipo"] == "Alfombra":
+                    prenda = Alfombra(**datos_prenda)
+                elif detalle["tipo"] == "EdredonCobertor":
+                    prenda = EdredonCobertor(**datos_prenda)
+                else:
+                    raise ValueError(
+                        f"Tipo de prenda desconocido: {detalle['tipo']}"
+                    )
+
+                operario.procesar_prenda(prenda)
+
+            if operario.maquinas_asignadas:
+                operario.operar_maquina(operario.maquinas_asignadas[0])
+
+            datos = orden_dao.obtener_respaldo(num_orden)
+
+        if datos["estado"] == "Listo Para Entrega":
+            if not datos["num_boleta"]:
+                input(
+                    "\nRealice y confirme el pago. "
+                    "Presione ENTER para continuar."
+                )
+                num_boleta = orden_dao.asignar_num_boleta(num_orden)
+                print(f"N° Boleta asignado: {num_boleta}")
+                input("Presione ENTER para actualizar el estado de la orden.")
+
+            datos = orden_dao.obtener_respaldo(num_orden)
+            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
+            orden_dao.actualizar_estado(num_orden, nuevo_estado)
+
+        datos_finales = orden_dao.obtener_respaldo(num_orden)
+        mostrar_resumen_guardado(datos_finales)
+
+    finally:
+        conexion.close()
 
 def gestionar_clientes():
     """Submenú interactivo para demostrar el CRUD completo de la entidad Cliente."""
@@ -407,7 +535,7 @@ def main():
         elif opcion == "2":
             gestionar_clientes()
         elif opcion == "3":
-            print("La opción para actualizar órdenes todavía no está implementada.")
+            actualizar_orden_existente()
         elif opcion == "4":
             print("Saliendo del sistema.")
             return
@@ -417,4 +545,3 @@ def main():
             
 if __name__ == "__main__":
     main()
-

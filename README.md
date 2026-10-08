@@ -39,6 +39,10 @@ Durante el desarrollo de este proyecto, utilizamos IA (ChatGPT/Gemini/Claude) co
 *   **Código adoptado:** La IA sugirió utilizar la librería estándar `getpass`.
 *   **Razón técnica de adopción:** Decidimos adoptarlo porque cumple exactamente con el requerimiento de seguridad visual sin necesidad de instalar librerías de terceros complejas, manteniendo el programa ligero y compatible. Sin embargo, descartamos una sugerencia de la IA que proponía encriptar las contraseñas con `bcrypt` en la base de datos, ya que excedía el alcance actual del modelo y la rúbrica, optando por mantener la simplicidad en esta etapa de desarrollo.
 
+*   **Código sugerido (Completitud del Patrón CRUD):** La IA detectó que en la capa DAO la entidad principal `ClienteDAO` solo contaba con métodos de creación y lectura (`insertar` y `listar_todos`), faltando los métodos de actualización y eliminación para dar cumplimiento total al patrón CRUD exigido en la rúbrica. Sugirió implementar `actualizar(rut_actual, nuevo_rut)` y `eliminar(rut)` con consultas parametrizadas, e integrarlos en un submenú interactivo en `main.py`.
+*   **Código adoptado:** Se implementaron los métodos `actualizar()` y `eliminar()` en `ClienteDAO` utilizando parámetros `?` para prevenir inyecciones SQL, y se conectó la funcionalidad en `main.py` mediante el submenú de gestión de clientes.
+*   **Razón técnica de adopción:** Se adoptó esta recomendación porque cubre directamente el Criterio 2.1.3 de la rúbrica de evaluación (CRUD completo de entidades principales mediante DAO) y permite demostrar en vivo de manera interactiva la modificación y eliminación de registros en la base de datos SQLite sin romper la integridad referencial.
+
 ---
 ###   Descripción del Proyecto
 
@@ -189,6 +193,11 @@ Lavanderia/
   - Verificación de consistencia y ejecución sin errores en consola.
 
 ### 5 de Octubre de 2026
-
--**Revisión final de código mediante las pruebas de funcionalidad en la terminal de visual studio code,
+- **Revisión final de código mediante las pruebas de funcionalidad en la terminal de visual studio code,
   -git's Pull's, git's commit's y los git's Push's correspondientes para la revisión del docente.
+
+### 7 de Octubre de 2026
+- **Implementación del Patrón CRUD Completo (`dao/cliente_dao.py` y `main.py`):**
+  - Sugerencia técnica de la IA adoptada para dar cumplimiento integral al Criterio 2.1.3 de la Rúbrica de Evaluación Sumativa N°2.
+  - Creación de los métodos `actualizar()` (Update) y `eliminar()` (Delete) en `ClienteDAO`, garantizando consultas SQLite totalmente parametrizadas (`?`) contra inyecciones SQL.
+  - Integración del submenú interactivo `gestionar_clientes()` en `main.py` para facilitar la demostración presencial en vivo de las 4 operaciones del CRUD (Crear, Listar, Modificar y Eliminar) con validación previa de entradas y manejo seguro de confirmaciones.

@@ -312,24 +312,108 @@ def ingresar_nueva_orden():
     print("     EJECUCIÓN DEL SISTEMA COMPLETADA EXITOSAMENTE")
     print("================================================================")
 
+def gestionar_clientes():
+    """Submenú interactivo para demostrar el CRUD completo de la entidad Cliente."""
+    conexion = crear_conexion()
+    cliente_dao = ClienteDAO(conexion)
+    cliente_dao.crear_tabla()
+
+    while True:
+        print("\n=================================================")
+        print("      GESTIÓN DE CLIENTES (CRUD COMPLETO)        ")
+        print("=================================================")
+        print("1. Registrar nuevo cliente (Create)")
+        print("2. Listar clientes registrados (Read)")
+        print("3. Modificar RUT de cliente (Update)")
+        print("4. Eliminar cliente (Delete)")
+        print("5. Volver al Menú Principal")
+
+        opcion = input("Seleccione una opción (1-5): ").strip()
+
+        if opcion == "1":
+            print("\n--- Registrar Cliente ---")
+            rut = solicitar_rut()
+            existente = cliente_dao.obtener_por_rut(rut)
+            if existente:
+                print(f"Aviso: El cliente con RUT {rut} ya existe en el sistema.")
+            else:
+                cliente = Cliente(rut=rut)
+                cliente_dao.insertar(cliente)
+                print(f"-> ¡Éxito! Cliente {cliente.rut} registrado correctamente en la base de datos.")
+
+        elif opcion == "2":
+            print("\n--- Lista de Clientes Registrados ---")
+            clientes = cliente_dao.listar_todos()
+            if not clientes:
+                print("No hay clientes registrados en la base de datos.")
+            else:
+                for idx, c in enumerate(clientes, start=1):
+                    print(f"  {idx}. {c}")
+
+        elif opcion == "3":
+            print("\n--- Modificar RUT de Cliente ---")
+            rut_actual = solicitar_rut()
+            existente = cliente_dao.obtener_por_rut(rut_actual)
+            if not existente:
+                print(f"Error: No se encontró ningún cliente registrado con RUT {rut_actual}.")
+            else:
+                print("Ingrese el nuevo RUT:")
+                nuevo_rut = solicitar_rut()
+                if cliente_dao.actualizar(rut_actual, nuevo_rut):
+                    print(f"-> ¡Éxito! Cliente actualizado: {rut_actual} -> {nuevo_rut}")
+                else:
+                    print("Error: No se pudo actualizar el cliente.")
+
+        elif opcion == "4":
+            print("\n--- Eliminar Cliente ---")
+            rut = solicitar_rut()
+            existente = cliente_dao.obtener_por_rut(rut)
+            if not existente:
+                print(f"Error: No se encontró ningún cliente registrado con RUT {rut}.")
+            else:
+                confirmacion = input(f"¿Confirma la eliminación del cliente {existente.rut}? (s/n): ").strip().lower()
+                if confirmacion == "s":
+                    try:
+                        if cliente_dao.eliminar(existente.rut):
+                            print(f"-> ¡Éxito! Cliente {existente.rut} eliminado de la base de datos.")
+                        else:
+                            print("Error: No se pudo eliminar el cliente.")
+                    except Exception as e:
+                        print(f"Error al eliminar cliente (puede tener órdenes asociadas): {e}")
+                else:
+                    print("-> Operación de eliminación cancelada.")
+
+        elif opcion == "5":
+            conexion.close()
+            break
+        else:
+            print("Opción inválida. Ingrese un número entre 1 y 5.")
+
+
 def main():
     while True:
-        print("\n¿Qué desea hacer?")
+        print("\n=================================================")
+        print("           SISTEMA DE GESTIÓN DE LAVANDERÍA      ")
+        print("=================================================")
         print("1. Ingresar Nueva Orden")
-        print("2. Actualizar Orden Existente")
-        print("3. Salir")
+        print("2. Gestión de Clientes (CRUD: Crear, Listar, Modificar, Eliminar)")
+        print("3. Actualizar Orden Existente")
+        print("4. Salir")
 
-        opcion = input("Seleccione una opción (1-3): ").strip()
+        opcion = input("Seleccione una opción (1-4): ").strip()
 
         if opcion == "1":
             ingresar_nueva_orden()
         elif opcion == "2":
-            print("La opción para actualizar órdenes todavía no está implementada.")
+            gestionar_clientes()
         elif opcion == "3":
+            print("La opción para actualizar órdenes todavía no está implementada.")
+        elif opcion == "4":
             print("Saliendo del sistema.")
             return
         else:
-            print("Opción inválida. Ingrese 1, 2 o 3.")
+            print("Opción inválida. Ingrese 1, 2, 3 o 4.")
+
             
 if __name__ == "__main__":
     main()

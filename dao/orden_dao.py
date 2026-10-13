@@ -59,6 +59,8 @@ class OrdenDAO(DAO):
                     "estado": detalle.prenda.estado_inicial,
                     "lavado_seco": detalle.prenda.lavado_seco,
                     "producto_quimico": detalle.prenda.producto_quimico.nombre,
+                    "producto_quimico_precio_usd": detalle.prenda.producto_quimico.precio_dolar,
+                    "valor_dolar": detalle.prenda.valor_dolar,
                     "cantidad": detalle.cantidad,
                     "subtotal": detalle.calcular_subtotal(),
                 }

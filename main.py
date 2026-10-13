@@ -1,5 +1,7 @@
-from datetime import date
+from datetime import date, datetime
 from conectar import crear_conexion
+from model import cajero
+from model import operario
 from servicios.miindicador import MiIndicador
 
 # Importación de DAOs
@@ -47,16 +49,16 @@ def solicitar_numero_orden() -> int:
     while True:
         valor = input("Ingrese N° de Orden: ").strip()
         if not valor.isascii() or not valor.isdecimal():
-            print("Formato inválido. Ingrese solo números enteros")
+            print("Formato inválido [Ingrese solo números enteros]")
             continue
         return int(valor)
 
 def solicitar_si_no_editar() -> int:
     while True:
-        valor = input("¿Desea editar?\n1. Sí\n2. No\nSeleccione: ").strip()
+        valor = input("¿Desea editar?\n 1. Sí\n 2. No\n Seleccione: ").strip()
         if not valor.isascii() or not valor.isdecimal():
             print(
-                "Formato inválido. Ingrese solo números enteros entre 1-2"
+                "Formato inválido [Ingrese solo números enteros entre 1-2]"
             )
             continue
 
@@ -64,7 +66,7 @@ def solicitar_si_no_editar() -> int:
         if opcion in (1, 2):
             return opcion
 
-        print("Formato inválido. Ingrese solo números enteros entre 1-2")
+        print("Formato inválido [Ingrese solo números enteros entre 1-2]")
 
 def solicitar_rut() -> str:
     while True:
@@ -74,17 +76,18 @@ def solicitar_rut() -> str:
             if cliente_temp.validar_rut():
                 return rut_str
             else:
-                print("Formato invalido. Intente de nuevo (RECUERDA: ingresar guion y digito verificador.")
+                print("Formato invalido. Intente de nuevo [RECUERDE: ingresar guion y digito verificador]")
         except ValueError as e:
             print(f"Error: {e}")
 
 def solicitar_fecha() -> str:
     while True:
-        valor = input("Ingrese la fecha de la orden (AAAA-MM-DD): ").strip()
+        valor = input("Ingrese la fecha de la orden (DD-MM-AAAA): ").strip()
         try:
-            return date.fromisoformat(valor).isoformat()
+            fecha = datetime.strptime(valor, "%d-%m-%Y").date()
+            return fecha.isoformat()
         except ValueError:
-            print("Formato inválido. Use el formato AAAA-MM-DD.")
+            print("Formato inválido [Use el formato DD-MM-AAAA].")
 
 def mostrar_resumen_guardado(datos: dict) -> None:
     print("\n========================================")
@@ -95,25 +98,26 @@ def mostrar_resumen_guardado(datos: dict) -> None:
     print(f"Cliente RUT: {datos['cliente_rut']}")
     print(f"ID Cajero: {datos['cajero_id']}")
     print(f"ID Operario: {datos['operario_id']}")
-    print(f"Tiempo de lavado: {datos['tiempo_lavado']} minutos")
     print(f"Máquinas: {datos['maquinas']}")
+    print(f"Tiempo de lavado: {datos['tiempo_lavado']} minutos")
     print(f"Total a pagar: ${datos['total']:,.0f} CLP")
     print(f"Estado: {datos['estado']}")
     print("Detalle:")
     for detalle in datos["detalles"]:
         print(
-            f"  {detalle['cantidad']} x {detalle['tipo']} "
+            f" {detalle['cantidad']} x {detalle['tipo']} "
             f"({detalle['estado']}) - "
             f"${detalle['subtotal']:,.0f} CLP"
         )
-        
+
+#1. INGRESAR NUEVA ORDEN
 def ingresar_nueva_orden():
     print("================================================================")
-    print("           SISTEMA DE GESTIÓN DE LAVANDERÍA INTERACTIVO")
+    print("           SISTEMA DE GESTIÓN DE LAVANDERÍA")
     print("================================================================")
 
     # 1. GESTIÓN DE BASE DE DATOS Y TABLAS
-    print("\n[1] Inicializando interfaz de usuario")
+    print("\n > Inicializando interfaz de usuario")
     conexion = crear_conexion()
 
     cliente_dao = ClienteDAO(conexion)
@@ -144,14 +148,14 @@ def ingresar_nueva_orden():
     print("¡Todo listo!")
 
     # 2. COTIZACIÓN DEL DÓLAR
-    print("\n Obteniendo la cotización actual del Dólar...")
+    print("\n > Obteniendo la cotización actual del Dólar...")
     try:
         indicador_service = MiIndicador()
         valor_dolar_api = indicador_service.obtener_valor("dolar")
         print(f"Valor Dólar Actualizado: ${valor_dolar_api:,.2f} CLP")
     except Exception as e:
         valor_dolar_api = 945.50
-        print(f"-> No se pudo conectar a la API ({e}). Usando valor por defecto: ${valor_dolar_api:,.2f} CLP")
+        print(f"No se pudo conectar a la API ({e}). Usando valor por defecto: ${valor_dolar_api:,.2f} CLP")
 
     cotizacion = CotizacionDolar(fecha=date.today(), valor_dolar=valor_dolar_api)
 
@@ -160,11 +164,16 @@ def ingresar_nueva_orden():
     solvente_seco = ProductoQuimico(nombre="Solvente Percloroetileno Puro", precio_dolar=8.20)
     desmanchador = ProductoQuimico(nombre="Desmanchador Alcalino Pro", precio_dolar=6.00)
 
+    print("\n > Precios de insumos calculados con la cotización actual:")
+    for producto in (detergente_bio, solvente_seco, desmanchador):
+        precio_clp = producto.calcular_precio_pesos(valor_dolar_api)
+        print(f"{producto.nombre}: ${precio_clp:,.0f} CLP")
+
     # 3. REGISTRO INTERACTIVO DE PERSONAL Y MAQUINARIAS
     import getpass
     import sys
 
-    print("\n--- SISTEMA DE AUTENTICACIÓN DE CAJERO ---")
+    print("\n--- AUTENTICACIÓN DE CAJERO ---")
     intentos_restantes = 3
     cajero_autenticado = False
 
@@ -175,17 +184,17 @@ def ingresar_nueva_orden():
             pwd_ingresada = getpass.getpass("Ingrese su contraseña: ") 
 
             if cajero_dao.autenticar(id_ingresado, pwd_ingresada):
-                print("\n-> ¡Acceso concedido!")
+                print("\n¡Acceso concedido!")
                 cajero = Cajero(id_empleado=id_ingresado, password=pwd_ingresada)
                 cajero_autenticado = True
                 break
             else:
                 intentos_restantes -= 1
-                print(f"Error: Credenciales incorrectas. Intentos restantes: {intentos_restantes}")
+                print(f"Credenciales incorrectas. Intentos restantes: {intentos_restantes}")
     
         except ValueError as e:
             # Esto captura si el setter del modelo Cajero rechaza la contraseña
-            print(f"Error de validación: {e}")
+            print(f"Error de validación: {e}. Intente de nuevo.")
 
     if not cajero_autenticado:
         print("\nAcceso bloqueado por múltiples intentos fallidos. Cerrando el sistema por seguridad.")
@@ -194,41 +203,41 @@ def ingresar_nueva_orden():
     id_operario = solicitar_entero_positivo("Ingrese ID del Operario a cargo: ")
     operario = Operario(id_empleado=id_operario)
 
-    cant_maquinas = solicitar_entero_positivo("Ingrese la cantidad de máquinas a asignar al operario: ")
+    cant_maquinas = solicitar_entero_positivo("Ingrese la cantidad de máquinas a asignar al Operario: ")
     for i in range(1, cant_maquinas + 1):
-        id_maq = solicitar_entero_positivo(f"  - Ingrese el ID para la Máquina #{i}: ")
+        id_maq = solicitar_entero_positivo(f"  - Ingrese ID de la Máquina #{i}: ")
         maquina = Maquina(id_maquina=id_maq)
         operario.asignar_maquina(maquina)
 
-    print(f"-> Personal registrado:")
-    print(f"   * {cajero}")
-    print(f"   * {operario} (Máquinas asignadas: {[m.id_maquina for m in operario.maquinas_asignadas]})")
+    print("Resumen Personal Registrado:")
+    print(f"   * Cajero: # {cajero.id_empleado}")
+    print(f"   * Operario: # {operario.id_empleado}")
+    ids_maquinas = ", ".join(str(maquina.id_maquina) for maquina in operario.maquinas_asignadas)
+    print(f"   * Máquinas: # {ids_maquinas}")
 
-# 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
-    print("\n[4] Creación de Orden de Servicio")
+    # 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
+    print("\n > CREACIÓN DE ORDEN DE SERVICIO")
     rut_cliente = solicitar_rut()
     cliente = Cliente(rut=rut_cliente)
     cliente_dao.insertar(cliente)
-
     fecha = solicitar_fecha()
     num_orden = 1
     num_boleta = ""
-
     cajero.recibir_prendas()
     cajero.registrar_orden()
 
     # 5. INGRESO DE PRENDAS
     detalles = []
-    print("\n[5] Ingreso de Prendas para la Orden")
+    print("\n > Ingreso de Prendas")
     while True:
-        print("\n--- Selección de Tipo de Prenda ---")
+        print("\n--- Selección del Tipo de Prenda ---")
         print("1. Ropa Normal (Camisa, Traje, Pantalón, etc.)")
         print("2. Alfombra")
         print("3. Edredón / Cobertor")
         opcion_prenda = input("Seleccione el tipo de prenda (1-3): ").strip()
 
         print("\n--- Estado de la Prenda ---")
-        print("Seleccione el estado ingresando un número entre 1 y 5:")
+        print("Seleccione el estado de ingreso de la prenda (1-5):")
         print("  1. Bueno")
         print("  2. Regular")
         print("  3. Manchado")
@@ -236,29 +245,44 @@ def ingresar_nueva_orden():
         print("  5. Sucio")
         estados_map = {1: "bueno", 2: "regular", 3: "manchado", 4: "delicado", 5: "sucio"}
         while True:
-            opcion_estado = input("Ingrese el estado de la prenda (1-5): ").strip()
+            opcion_estado = input("Ingrese el estado de ingreso de la prenda (1-5): ").strip()
             try:
                 opcion_estado_int = int(opcion_estado)
                 if 1 <= opcion_estado_int <= 5:
                     estado = estados_map[opcion_estado_int]
                     break
                 else:
-                    print("Formato invalido. Ingrese una opcion entre 1 y 5.")
+                    print("Formato invalido [Ingrese solo números enteros entre 1 y 5]")
             except ValueError:
-                print("Formato invalido. Ingrese una opcion entre 1 y 5.")
+                print("Formato invalido [Ingrese solo números enteros entre 1y 5]")
 
         if opcion_prenda == "1":
             lavado_seco_input = input("¿Requiere Lavado al Seco? (s/n): ").strip().lower()
             lavado_seco = (lavado_seco_input == 's')
             quimico = solvente_seco if lavado_seco else detergente_bio
-            prenda_obj = RopaNormal(estado_inicial=estado, lavado_seco=lavado_seco, producto_quimico=quimico)
+            prenda_obj = RopaNormal(
+                estado_inicial=estado,
+                lavado_seco=lavado_seco,
+                producto_quimico=quimico,
+                valor_dolar=valor_dolar_api,
+            )
         elif opcion_prenda == "2":
-            prenda_obj = Alfombra(estado_inicial=estado, lavado_seco=False, producto_quimico=desmanchador)
+            prenda_obj = Alfombra(
+                estado_inicial=estado,
+                lavado_seco=False,
+                producto_quimico=desmanchador,
+                valor_dolar=valor_dolar_api,
+            )
         elif opcion_prenda == "3":
             lavado_seco_input = input("¿Requiere Lavado al Seco? (s/n): ").strip().lower()
             lavado_seco = (lavado_seco_input == 's')
             quimico = solvente_seco if lavado_seco else detergente_bio
-            prenda_obj = EdredonCobertor(estado_inicial=estado, lavado_seco=lavado_seco, producto_quimico=quimico)
+            prenda_obj = EdredonCobertor(
+                estado_inicial=estado,
+                lavado_seco=lavado_seco,
+                producto_quimico=quimico,
+                valor_dolar=valor_dolar_api,
+            )
         else:
             print("Opción inválida. Intente de nuevo.")
             continue
@@ -278,14 +302,13 @@ def ingresar_nueva_orden():
         cliente=cliente,
         cajero=cajero,
         detalles=detalles,
-        pagada=False
     )
-
     tiempo_lavado = sum(
         detalle.cantidad * detalle.prenda.calcular_tiempo_lavado()
         for detalle in orden.detalles
     )
-
+    pagada=False,
+    
     orden_dao.guardar_respaldo(
         orden,
         fecha,
@@ -294,23 +317,23 @@ def ingresar_nueva_orden():
     )
 
     print("\n================================================================")
-    print(f" RESUMEN DE LA ORDEN #{orden.num_orden} - BOLETA (pendiente)")
+    print(f" RESUMEN DE LA ORDEN #{orden.num_orden} - BOLETA [PENDIENTE]")
     print("================================================================")
     print(f"Cliente RUT: {orden.cliente.rut}")
     print(f"Cajero a cargo ID: {orden.cajero.id_empleado}")
     print(f"Fecha: {fecha}")
     print(f"Operario a cargo ID: {operario.id_empleado}")
-    print(f"Tiempo estimado de lavado: {tiempo_lavado} minutos")
     print(
         "Máquinas a usar: "
         f"{[maquina.id_maquina for maquina in operario.maquinas_asignadas]}"
     )
+    print(f"Tiempo estimado de lavado: {tiempo_lavado} minutos")
     print("Estado: En Proceso")
     print("Prendas ingresadas:")
     for d in orden.detalles:
         print(f"   * {d}")
     total_orden = orden.calcular_total()
-    print(f"\n-> TOTAL A PAGAR: ${total_orden:,.0f} CLP")
+    print(f"\n > TOTAL A PAGAR: ${total_orden:,.0f} CLP")
     input("¡Orden registrada! [Presione ENTER para continuar]")
     conexion.close()
     return
@@ -330,19 +353,18 @@ def solicitar_siguiente_estado(estado_actual: str) -> str:
         raise ValueError(f"El estado '{estado_actual}' no admite más cambios.")
 
     while True:
-        print("\nSeleccione el nuevo Estado de Orden:")
-        print("1. En Proceso")
+        print("\n > Seleccione el nuevo Estado de Orden:")
         print("2. Listo Para Entrega")
         print("3. Pagada_Cerrada")
-        valor = input("Seleccione una opción (1-3): ").strip()
+        valor = input("Seleccione una opción (2-3): ").strip()
 
         if not valor.isascii() or not valor.isdecimal():
-            print("Formato inválido. Seleccione un número entre 1 -3")
+            print("Formato inválido [Ingrese solo números enteros entre 2 -3]")
             continue
 
         opcion = int(valor)
         if opcion not in estados:
-            print("Formato inválido. Seleccione un número entre 1 -3")
+            print("Formato inválido [Ingrese solo números enteros entre 2 -3]")
             continue
 
         if opcion != siguiente:
@@ -351,10 +373,10 @@ def solicitar_siguiente_estado(estado_actual: str) -> str:
 
         return estados[opcion]
 
+#3. ACTUALIZAR ORDEN EXISTENTE
 def actualizar_orden_existente() -> None:
     conexion = crear_conexion()
     orden_dao = OrdenDAO(conexion)
-
     try:
         orden_dao.crear_tabla()
         conexion.commit()
@@ -363,7 +385,7 @@ def actualizar_orden_existente() -> None:
         datos = orden_dao.obtener_respaldo(num_orden)
 
         if datos is None:
-            print(f"No existe una orden registrada con el número {num_orden}.")
+            print(f"No existe una orden registrada con el número {num_orden}. Intente nuevamente")
             return
 
         mostrar_resumen_guardado(datos)
@@ -372,7 +394,7 @@ def actualizar_orden_existente() -> None:
             return
 
         if datos["estado"] == "Pagada_Cerrada":
-            print("La orden ya está cerrada y no admite más cambios.")
+            print("La orden ya está cerrada y no permite más cambios.")
             return
 
         if datos["estado"] == "En Proceso":
@@ -380,51 +402,10 @@ def actualizar_orden_existente() -> None:
             orden_dao.actualizar_estado(num_orden, nuevo_estado)
             datos = orden_dao.obtener_respaldo(num_orden)
 
-            maquinas = [
-                Maquina(id_maquina=int(id_maquina))
-                for id_maquina in datos["maquinas"]
-            ]
-            operario = Operario(
-                id_empleado=int(datos["operario_id"]),
-                maquinas_asignadas=maquinas,
-            )
-
-            print("\nProcesamiento de la orden")
-            for detalle in datos["detalles"]:
-                producto = ProductoQuimico(
-                    nombre=detalle["producto_quimico"],
-                    precio_dolar=0.0,
-                )
-
-                datos_prenda = {
-                    "estado_inicial": detalle["estado"],
-                    "lavado_seco": detalle["lavado_seco"],
-                    "producto_quimico": producto,
-                }
-
-                if detalle["tipo"] == "RopaNormal":
-                    prenda = RopaNormal(**datos_prenda)
-                elif detalle["tipo"] == "Alfombra":
-                    prenda = Alfombra(**datos_prenda)
-                elif detalle["tipo"] == "EdredonCobertor":
-                    prenda = EdredonCobertor(**datos_prenda)
-                else:
-                    raise ValueError(
-                        f"Tipo de prenda desconocido: {detalle['tipo']}"
-                    )
-
-                operario.procesar_prenda(prenda)
-
-            if operario.maquinas_asignadas:
-                operario.operar_maquina(operario.maquinas_asignadas[0])
-
-            datos = orden_dao.obtener_respaldo(num_orden)
-
         if datos["estado"] == "Listo Para Entrega":
             if not datos["num_boleta"]:
                 input(
-                    "\nRealice y confirme el pago. "
-                    "Presione ENTER para continuar."
+                    "\n¿Pago realizado y confirmado? [Presione ENTER para continuar]"
                 )
                 num_boleta = orden_dao.asignar_num_boleta(num_orden)
                 print(f"N° Boleta asignado: {num_boleta}")
@@ -440,6 +421,7 @@ def actualizar_orden_existente() -> None:
     finally:
         conexion.close()
 
+#SUBMENU INTERACTIVO
 def gestionar_clientes():
     """Submenú interactivo para demostrar el CRUD completo de la entidad Cliente."""
     conexion = crear_conexion()
@@ -467,7 +449,7 @@ def gestionar_clientes():
             else:
                 cliente = Cliente(rut=rut)
                 cliente_dao.insertar(cliente)
-                print(f"-> ¡Éxito! Cliente {cliente.rut} registrado correctamente en la base de datos.")
+                print(f"¡Éxito! Cliente {cliente.rut} registrado correctamente en la base de datos.")
 
         elif opcion == "2":
             print("\n--- Lista de Clientes Registrados ---")
@@ -488,7 +470,7 @@ def gestionar_clientes():
                 print("Ingrese el nuevo RUT:")
                 nuevo_rut = solicitar_rut()
                 if cliente_dao.actualizar(rut_actual, nuevo_rut):
-                    print(f"-> ¡Éxito! Cliente actualizado: {rut_actual} -> {nuevo_rut}")
+                    print(f"¡Éxito! Cliente actualizado: {rut_actual} >> {nuevo_rut}")
                 else:
                     print("Error: No se pudo actualizar el cliente.")
 
@@ -503,13 +485,13 @@ def gestionar_clientes():
                 if confirmacion == "s":
                     try:
                         if cliente_dao.eliminar(existente.rut):
-                            print(f"-> ¡Éxito! Cliente {existente.rut} eliminado de la base de datos.")
+                            print(f"¡Éxito! Cliente {existente.rut} eliminado de la base de datos.")
                         else:
                             print("Error: No se pudo eliminar el cliente.")
                     except Exception as e:
                         print(f"Error al eliminar cliente (puede tener órdenes asociadas): {e}")
                 else:
-                    print("-> Operación de eliminación cancelada.")
+                    print("¡Operación de eliminación cancelada!")
 
         elif opcion == "5":
             conexion.close()
@@ -517,7 +499,7 @@ def gestionar_clientes():
         else:
             print("Opción inválida. Ingrese un número entre 1 y 5.")
 
-
+#MENÚ PRINCIPAL
 def main():
     while True:
         print("\n=================================================")

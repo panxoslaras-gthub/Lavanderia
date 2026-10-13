@@ -23,6 +23,9 @@ class Operario(Empleado): # Define la clase Operario que hereda de Empleado
     def asignarMaquina(self, maquina: Maquina) -> None: # Alias camelCase según diagrama UML
         self.asignar_maquina(maquina)
 
+    def procesar_prenda(self, prenda: Prenda) -> None:
+        print(f"Operario #{self.id_empleado} procesando {prenda}.")
+
     def procesarPrenda(self, prenda: Prenda) -> None: # Alias camelCase según diagrama UML
         self.procesar_prenda(prenda)
 

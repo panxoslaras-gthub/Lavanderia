@@ -2,10 +2,20 @@ from abc import ABC, abstractmethod
 from model.producto_quimico import ProductoQuimico
 
 class Prenda(ABC): # Define la clase abstracta base Prenda
-    def __init__(self, estado_inicial: str, lavado_seco: bool, producto_quimico: ProductoQuimico):
+    def __init__(
+        self,
+        estado_inicial: str,
+        lavado_seco: bool,
+        producto_quimico: ProductoQuimico,
+        valor_dolar: float,
+        ):
         self.estado_inicial = estado_inicial # Estado inicial recibido de la prenda
         self.__lavado_seco: bool = bool(lavado_seco) # Booleano indicando si requiere lavado en seco
         self.__producto_quimico: ProductoQuimico = producto_quimico # Insumo químico asignado
+
+        if valor_dolar <= 0:
+            raise ValueError("El valor del dólar debe ser mayor a 0.")
+        self.__valor_dolar = float(valor_dolar)
 
     @property
     def estado_inicial(self) -> str: # Getter para estadoInicial
@@ -36,6 +46,10 @@ class Prenda(ABC): # Define la clase abstracta base Prenda
     @property
     def productoQuimico(self) -> ProductoQuimico: # Alias camelCase según diagrama UML
         return self.producto_quimico
+
+    @property
+    def valor_dolar(self) -> float:
+        return self.__valor_dolar
 
     def validar_estado(self) -> bool: # Valida que la prenda sea apta para el proceso de lavado
         estados_validos = ["bueno", "regular", "manchado", "delicado", "sucio"]

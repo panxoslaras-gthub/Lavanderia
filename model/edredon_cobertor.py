@@ -2,14 +2,23 @@ from model.prenda import Prenda
 from model.producto_quimico import ProductoQuimico
 
 class EdredonCobertor(Prenda): # Define la subclase EdredonCobertor que hereda de Prenda
-    def __init__(self, estado_inicial: str, lavado_seco: bool, producto_quimico: ProductoQuimico):
-        super().__init__(estado_inicial, lavado_seco, producto_quimico)
+    def __init__(
+        self,
+        estado_inicial: str,
+        lavado_seco: bool,
+        producto_quimico: ProductoQuimico,
+        valor_dolar: float,
+    ):
+        super().__init__(estado_inicial, lavado_seco, producto_quimico, valor_dolar)
 
-    def calcular_costo(self) -> float: # Sobrescribe costo para edredones y cobertores
+    def calcular_costo(self) -> float:
         costo_base = 8500.0
         if self.lavado_seco:
-            costo_base += 2500.0
-        return costo_base
+            recargo_quimico = (
+                self.producto_quimico.calcular_precio_pesos(self.valor_dolar) / 10
+            )
+            costo_base += 2500.0 + recargo_quimico
+        return round(costo_base, 2)
 
     def calcularCosto(self) -> float: # Alias camelCase según diagrama UML
         return self.calcular_costo()

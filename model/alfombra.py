@@ -2,8 +2,14 @@ from model.prenda import Prenda
 from model.producto_quimico import ProductoQuimico
 
 class Alfombra(Prenda): # Define la subclase Alfombra que hereda de Prenda
-    def __init__(self, estado_inicial: str, lavado_seco: bool, producto_quimico: ProductoQuimico):
-        super().__init__(estado_inicial, lavado_seco, producto_quimico)
+    def __init__(
+        self,
+        estado_inicial: str,
+        lavado_seco: bool,
+        producto_quimico: ProductoQuimico,
+        valor_dolar: float,
+    ):
+        super().__init__(estado_inicial, lavado_seco, producto_quimico, valor_dolar)
 
     def calcular_costo(self) -> float: # Sobrescribe costo para alfombras (servicio pesado)
         costo_base = 12000.0

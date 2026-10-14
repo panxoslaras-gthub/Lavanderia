@@ -53,7 +53,7 @@ def solicitar_numero_orden() -> int:
 
 def solicitar_si_no_editar() -> int:
     while True:
-        valor = input("¿Desea editar?\n 1. Sí\n 2. No\n Seleccione: ").strip()
+        valor = input("¿Desea editar?\n 1. Sí\n 2. No\n Seleccione una opción (1-2): ").strip()
         if not valor.isascii() or not valor.isdecimal():
             print(
                 "Formato inválido [Ingrese solo números enteros entre 1-2]"
@@ -146,7 +146,7 @@ def ingresar_nueva_orden():
     conexion.commit()
     print("¡Todo listo!")
 
-    # 2. COTIZACIÓN DEL DÓLAR
+    # COTIZACIÓN DEL DÓLAR
     print("\n > Obteniendo la cotización actual del Dólar...")
     try:
         indicador_service = MiIndicador()
@@ -214,7 +214,7 @@ def ingresar_nueva_orden():
     ids_maquinas = ", ".join(str(maquina.id_maquina) for maquina in operario.maquinas_asignadas)
     print(f"   * Máquinas: # {ids_maquinas}")
 
-    # 4. REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
+    # REGISTRO INTERACTIVO DE CLIENTE Y ORDEN DE SERVICIO
     print("\n > CREACIÓN DE ORDEN DE SERVICIO")
     rut_cliente = solicitar_rut()
     cliente = Cliente(rut=rut_cliente)
@@ -225,7 +225,7 @@ def ingresar_nueva_orden():
     cajero.recibir_prendas()
     cajero.registrar_orden()
 
-    # 5. INGRESO DE PRENDAS
+    # INGRESO DE PRENDAS
     detalles = []
     print("\n > Ingreso de Prendas")
     while True:
@@ -294,7 +294,7 @@ def ingresar_nueva_orden():
         if continuar != 's':
             break
 
-    # Construcción de la Orden completa
+    # CONSTRUCCIÓN DE LA ORDEN COMPLETA
     orden = Orden(
         num_orden=num_orden,
         num_boleta=num_boleta,
@@ -372,57 +372,9 @@ def solicitar_siguiente_estado(estado_actual: str) -> str:
 
         return estados[opcion]
 
-#4. ACTUALIZAR ORDEN EXISTENTE
-def actualizar_orden_existente() -> None:
-    conexion = crear_conexion()
-    orden_dao = OrdenDAO(conexion)
-    try:
-        orden_dao.crear_tabla()
-        conexion.commit()
 
-        num_orden = solicitar_numero_orden()
-        datos = orden_dao.obtener_respaldo(num_orden)
-
-        if datos is None:
-            print(f"No existe una orden registrada con el número {num_orden}. Intente nuevamente")
-            return
-
-        mostrar_resumen_guardado(datos)
-
-        if solicitar_si_no_editar() == 2:
-            return
-
-        if datos["estado"] == "Pagada_Cerrada":
-            print("La orden ya está cerrada y no permite más cambios.")
-            return
-
-        if datos["estado"] == "En Proceso":
-            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
-            orden_dao.actualizar_estado(num_orden, nuevo_estado)
-            datos = orden_dao.obtener_respaldo(num_orden)
-
-        if datos["estado"] == "Listo Para Entrega":
-            if not datos["num_boleta"]:
-                input(
-                    "\n¿Pago realizado y confirmado? [Presione ENTER para continuar]"
-                )
-                num_boleta = orden_dao.asignar_num_boleta(num_orden)
-                print(f"N° Boleta asignado: {num_boleta}")
-                input("Presione ENTER para actualizar el estado de la orden.")
-
-            datos = orden_dao.obtener_respaldo(num_orden)
-            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
-            orden_dao.actualizar_estado(num_orden, nuevo_estado)
-
-        datos_finales = orden_dao.obtener_respaldo(num_orden)
-        mostrar_resumen_guardado(datos_finales)
-
-    finally:
-        conexion.close()
-
-#SUBMENU INTERACTIVO
+# SUBMENU INTERACTIVO CRUD CLIENTES
 def gestionar_clientes():
-    """Submenú interactivo para demostrar el CRUD completo de la entidad Cliente."""
     conexion = crear_conexion()
     try:
         cliente_dao = ClienteDAO(conexion)
@@ -529,10 +481,11 @@ def gestionar_ordenes():
     try:
         orden_dao = OrdenDAO(conexion)
         orden_dao.crear_tabla()
+        conexion.commit()
 
         while True:
             print("\n=================================================")
-            print("         GESTIÓN DE ÓRDENES REGISTRADAS          ")
+            print("         GESTIÓN DE ORDENES REGISTRADAS          ")
             print("=================================================")
             print("1. Listar todas las órdenes creadas")
             print("2. Visualizar detalle de una orden")
@@ -544,7 +497,7 @@ def gestionar_ordenes():
 
             if opcion == "1":
                 print("\n==========================================================================================")
-                print("                               LISTA DE ÓRDENES REGISTRADAS                               ")
+                print("                               LISTA DE ORDENES REGISTRADAS                               ")
                 print("==========================================================================================")
                 ordenes = orden_dao.listar_todas()
                 if not ordenes:
@@ -619,6 +572,52 @@ def gestionar_ordenes():
     finally:
         conexion.close()
 
+# MODIFICAR / ACTUALIZAR ORDEN EXISTENTE
+def actualizar_orden_existente() -> None:
+    conexion = crear_conexion()
+    orden_dao = OrdenDAO(conexion)
+    try:
+        orden_dao.crear_tabla()
+        conexion.commit()
+
+        num_orden = solicitar_numero_orden()
+        datos = orden_dao.obtener_respaldo(num_orden)
+
+        if datos is None:
+            print(f"No existe una orden registrada con el número {num_orden}. Intente nuevamente")
+            return
+
+        mostrar_resumen_guardado(datos)
+
+        if solicitar_si_no_editar() == 2:
+            return
+
+        if datos["estado"] == "Pagada_Cerrada":
+            print("La orden ya está cerrada y no permite más cambios.")
+            return
+
+        if datos["estado"] == "En Proceso":
+            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
+            orden_dao.actualizar_estado(num_orden, nuevo_estado)
+            datos = orden_dao.obtener_respaldo(num_orden)
+
+        if datos["estado"] == "Listo Para Entrega":
+            if not datos["num_boleta"]:
+                input("\n > Presione ENTER para confirmar la realización del pago y asignar N° de boleta")
+                num_boleta = orden_dao.asignar_num_boleta(num_orden)
+                print(f"N° Boleta asignado: {num_boleta}")
+                input("Presione ENTER para actualizar el estado de la orden.")
+
+            datos = orden_dao.obtener_respaldo(num_orden)
+            nuevo_estado = solicitar_siguiente_estado(datos["estado"])
+            orden_dao.actualizar_estado(num_orden, nuevo_estado)
+
+        datos_finales = orden_dao.obtener_respaldo(num_orden)
+        mostrar_resumen_guardado(datos_finales)
+
+    finally:
+        conexion.close()
+
 #MENÚ PRINCIPAL
 def main():
     while True:
@@ -628,10 +627,9 @@ def main():
         print("1. Ingresar Nueva Orden")
         print("2. Gestión de Clientes (CRUD: Crear, Listar, Modificar, Eliminar)")
         print("3. Gestión de Órdenes (Listar, Visualizar, Modificar, Eliminar)")
-        print("4. Actualizar Estado de Orden Existente")
-        print("5. Salir")
+        print("4. Salir")
 
-        opcion = input("Seleccione una opción (1-5): ").strip()
+        opcion = input("Seleccione una opción (1-4): ").strip()
 
         if opcion == "1":
             ingresar_nueva_orden()
@@ -640,14 +638,10 @@ def main():
         elif opcion == "3":
             gestionar_ordenes()
         elif opcion == "4":
-            actualizar_orden_existente()
-        elif opcion == "5":
             print("Saliendo del sistema.")
             return
         else:
-            print("Opción inválida. Ingrese un número entre 1 y 5.")
-
+            print("Opción inválida. Ingrese un número entre 1 y 4.")
             
 if __name__ == "__main__":
     main()
-

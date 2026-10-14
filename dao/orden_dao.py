@@ -200,3 +200,42 @@ class OrdenDAO(DAO):
         except Exception:
             self.conexion.rollback()
             raise
+
+    def listar_todas(self) -> list[dict]:
+        """Recupera la lista de todas las órdenes guardadas en orden_respaldo."""
+        cursor = self.conexion.execute(
+            """
+            SELECT num_orden, num_boleta, datos_json, registrada_en
+            FROM orden_respaldo
+            ORDER BY num_orden ASC
+            """
+        )
+        filas = cursor.fetchall()
+        ordenes = []
+        for fila in filas:
+            try:
+                datos = json.loads(fila[2])
+                datos["num_orden"] = fila[0]
+                datos["num_boleta"] = fila[1]
+                datos["registrada_en"] = fila[3]
+                ordenes.append(datos)
+            except Exception:
+                continue
+        return ordenes
+
+    def eliminar(self, num_orden: int) -> bool:
+        """Elimina una orden de orden_respaldo y de orden si existe."""
+        try:
+            self.conexion.execute(
+                "DELETE FROM orden WHERE num_orden = ?",
+                (num_orden,),
+            )
+            cursor = self.conexion.execute(
+                "DELETE FROM orden_respaldo WHERE num_orden = ?",
+                (num_orden,),
+            )
+            self.conexion.commit()
+            return cursor.rowcount > 0
+        except Exception:
+            self.conexion.rollback()
+            raise
